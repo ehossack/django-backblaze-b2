@@ -61,6 +61,12 @@ Ensure formatting is compliant.
 
 1. `make setup`
 
+* You can run django with `make run-django` to test django app.
+* You can run tests with `make test`
+* You can view test coverage with `make test-coverage`, then see in the terminal, 
+open `test/htmlcov/index.html`
+or use `cov.xml` in your favourite IDE like VSCode
+
 ### Cleanup
 
 1. `make cleanup`

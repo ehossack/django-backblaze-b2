@@ -8,3 +8,5 @@ exclude =
 max-complexity = 10
 max-line-length = 120
 extend-ignore = E203
+per-file-ignores =
+    tests/test_project/django_project/settings.py:F841
