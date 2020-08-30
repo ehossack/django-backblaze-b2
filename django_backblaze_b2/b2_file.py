@@ -76,8 +76,6 @@ class B2File(File):
         """
         logger.debug(f"Saving {self.name} to b2 bucket ({self._bucket.get_id()})")
         self._bucket.upload_bytes(
-            data_bytes=content.read(),
-            file_name=self.name,
-            file_infos=self._fileInfos,
+            data_bytes=content.read(), file_name=self.name, file_infos=self._fileInfos,
         )
         return self.name
