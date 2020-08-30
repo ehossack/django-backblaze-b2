@@ -1,3 +1,22 @@
 {
-    "restructuredtext.confPath": ""
+  "editor.insertSpaces": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  },
+  "editor.formatOnSave": true,
+
+  "restructuredtext.confPath": "",
+  "python.formatting.provider": "black",
+  "python.formatting.autopep8Args": ["--max-line-length", "120"],
+  "python.linting.enabled": true,
+  "python.linting.flake8Enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.lintOnSave": true,
+  "python.linting.flake8CategorySeverity.W": "Error",
+  "python.linting.mypyEnabled": true,
+  "python.linting.mypyArgs": [
+    "--follow-imports=silent",
+    "--show-column-numbers"
+  ],
+  "python.analysis.autoImportCompletions": false
 }
