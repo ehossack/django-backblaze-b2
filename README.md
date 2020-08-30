@@ -11,5 +11,16 @@ Ensure formatting is compliant.
 
 ## Setting up for development
 
-1. `pip install -r requirements.txt`
-1. `poetry install`
+### Requires
+
+- python
+- (ideally) pyenv
+- GNU Make
+
+### Running
+
+1. `make setup`
+
+### Cleanup
+
+1. `make cleanup`
