@@ -1,6 +1,6 @@
 from datetime import datetime
 from logging import getLogger
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo
 from b2sdk.v1.exception import NonExistentBucket
@@ -10,6 +10,7 @@ from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
 
 from django_backblaze_b2.b2_file import B2File
+from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
 
 logger = getLogger("django-backblaze-b2")
 
@@ -97,19 +98,19 @@ class BackblazeB2Storage(Storage):
         return name
 
     def delete(self, name: str) -> None:
-        fileId = FileMetaShim(self, name).id
+        fileId = FileMetaShim(self.b2Api, self.bucket, name).id
         logger.debug(f"Deleting file {name} id=({fileId})")
         self.b2Api.delete_file_version(file_id=fileId, file_name=name)
 
     def exists(self, name: str) -> bool:
         try:
-            FileMetaShim(self, name).as_dict()
+            FileMetaShim(self.b2Api, self.bucket, name).as_dict()
             return True
         except Exception:
             return False
 
     def size(self, name: str) -> int:
-        return FileMetaShim(self, name).contentLength
+        return FileMetaShim(self.b2Api, self.bucket, name).contentLength
 
     def url(self, name: Optional[str]) -> str:
         if not name:
@@ -153,37 +154,3 @@ class BackblazeB2Storage(Storage):
         raise NotImplementedError(
             "subclasses of Storage must provide a get_modified_time() method"
         )
-
-
-class FileMetaShim:
-    """
-    Shim until you can get file info by name:
-    https://github.com/Backblaze/b2-sdk-python/issues/143
-    """
-
-    def __init__(self, storage: BackblazeB2Storage, name: str) -> None:
-        self._storage = storage
-        self._filename = name
-
-    @property
-    def id(self) -> str:
-        return self.as_dict()["x-bz-file-id"]
-
-    @property
-    def contentLength(self) -> int:
-        return self.as_dict()["Content-Length"]
-
-    def as_dict(self) -> Dict:
-        if not hasattr(self, "_meta"):
-            downloadUrl = self._storage.b2Api.session.get_download_url_by_name(
-                self._storage._bucketName, self._filename
-            )
-            downloadAuthorization = self._storage.bucket.get_download_authorization(
-                self._filename, 30
-            )
-            response = self._storage.b2Api.raw_api.b2_http.session.head(
-                downloadUrl, headers={"Authorization": downloadAuthorization}
-            )
-            response.raise_for_status()
-            self._meta = response.headers
-        return self._meta
