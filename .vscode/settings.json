@@ -5,6 +5,13 @@
   },
   "editor.formatOnSave": true,
 
+  "[html]": {
+    "editor.formatOnSave": false
+  },
+  "[markdown]": {
+    "editor.formatOnSave": false
+  },
+
   "restructuredtext.confPath": "",
   "python.formatting.provider": "black",
   "python.formatting.autopep8Args": ["--max-line-length", "120"],
@@ -18,5 +25,6 @@
     "--follow-imports=silent",
     "--show-column-numbers"
   ],
-  "python.analysis.autoImportCompletions": false
+  "python.analysis.autoImportCompletions": false,
+  "prettier.enable": false
 }
