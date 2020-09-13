@@ -46,8 +46,11 @@ This is great, but most packages use an older version of the S3 Api (v2). Backbl
 
 ## Contributing
 
-Contributions welcome! Please ensure test coverage does not decrease in a meaningful way.
-Ensure formatting is compliant.
+Contributions welcome!
+
+* Please ensure test coverage does not decrease in a meaningful way.
+* Ensure formatting is compliant (`make lint`)
+* Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/)
 
 ## Setting up for development
 

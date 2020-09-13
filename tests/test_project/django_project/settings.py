@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
+import sys
 from pathlib import Path
 from typing import List
 
@@ -75,10 +76,7 @@ WSGI_APPLICATION = "django_project.wsgi.application"
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
 }
 
 
@@ -87,7 +85,7 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
     },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
@@ -113,3 +111,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = "/static/"
+
+# For this project
+from typing import Dict, Any  # noqa:E402 isort:skip
+
+sys.path.append(str(BASE_DIR.parent.parent.resolve()))
+sys.path.append(str(BASE_DIR.resolve()))
+
+INSTALLED_APPS = ["tests.test_project.files.apps.FilesConfig"] + INSTALLED_APPS
+DEFAULT_FILE_STORAGE = "django_backblaze_b2.storage.BackblazeB2Storage"
+
+BACKBLAZE_CONFIG: Dict[str, Any] = {"validateOnInit": False, "authorizeOnInit": False}

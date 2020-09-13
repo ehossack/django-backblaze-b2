@@ -8,7 +8,6 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
-from requests import HTTPError
 
 from django_backblaze_b2.b2_file import B2File
 from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
