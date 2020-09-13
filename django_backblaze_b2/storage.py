@@ -1,6 +1,6 @@
 from datetime import datetime
 from logging import getLogger
-from typing import List, Optional, Tuple
+from typing import IO, Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
 
 from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo
 from b2sdk.v1.exception import NonExistentBucket
@@ -8,11 +8,23 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
+from requests import HTTPError
 
 from django_backblaze_b2.b2_file import B2File
 from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
 
 logger = getLogger("django-backblaze-b2")
+
+
+class Configuration(TypedDict):
+    realm: Literal["production"]
+    application_key_id: str
+    application_key: str
+    bucket: str
+    authorizeOnInit: bool
+    validateOnInit: bool
+    nonExistentBucketDetails: Optional[Dict[str, Union[str, Dict[str, Any]]]]
+    defaultFileInfo: Dict[str, Any]
 
 
 @deconstructible
@@ -26,14 +38,14 @@ class BackblazeB2Storage(Storage):
         if not hasattr(settings, "BACKBLAZE_CONFIG"):
             raise ImproperlyConfigured("add BACKBLAZE_CONFIG dict to django settings")
 
-        opts = {
+        opts: Configuration = {
             "realm": "production",
-            "application_key_id": None,
-            "application_key": None,
+            "application_key_id": "---",
+            "application_key": "---",
             "bucket": "django",
             "authorizeOnInit": True,
             "validateOnInit": True,
-            "nonExistentBucketDetails": {},
+            "nonExistentBucketDetails": None,
             "defaultFileInfo": {},
         }
         opts.update(settings.BACKBLAZE_CONFIG)
@@ -68,11 +80,11 @@ class BackblazeB2Storage(Storage):
             self._getOrCreateBucket()
         return self._bucket
 
-    def _getOrCreateBucket(self, newBucketDetails={}) -> None:
+    def _getOrCreateBucket(self, newBucketDetails=None) -> None:
         try:
             self._bucket = self.b2Api.get_bucket_by_name(self._bucketName)
         except NonExistentBucket as e:
-            if newBucketDetails:
+            if newBucketDetails is not None:
                 logger.debug(
                     f"Bucket {self._bucketName} not found. Creating with details: {newBucketDetails}"
                 )
@@ -94,6 +106,19 @@ class BackblazeB2Storage(Storage):
             sizeProvider=self.size,
         )
 
+    def _save(self, name: str, content: IO[Any]) -> str:
+        """
+        Save and retrieve the filename.
+        If the file exists it will make another version of that file.
+        """
+        return B2File(
+            name=name,
+            bucket=self.bucket,
+            fileInfos=self._defaultFileInfo,
+            mode="w",
+            sizeProvider=self.size,
+        ).saveAndRetrieveFile(content)
+
     def path(self, name: str) -> str:
         return name
 
@@ -103,11 +128,7 @@ class BackblazeB2Storage(Storage):
         self.b2Api.delete_file_version(file_id=fileId, file_name=name)
 
     def exists(self, name: str) -> bool:
-        try:
-            FileMetaShim(self.b2Api, self.bucket, name).as_dict()
-            return True
-        except Exception:
-            return False
+        return FileMetaShim(self.b2Api, self.bucket, name).exists
 
     def size(self, name: str) -> int:
         return FileMetaShim(self.b2Api, self.bucket, name).contentLength

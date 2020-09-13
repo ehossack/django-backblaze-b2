@@ -1,6 +1,7 @@
 from typing import Dict
 
 from b2sdk.v1 import B2Api, Bucket
+from requests import HTTPError
 
 
 class FileMetaShim:
@@ -24,6 +25,16 @@ class FileMetaShim:
     @property
     def contentLength(self) -> int:
         return self.as_dict()["Content-Length"]
+
+    @property
+    def exists(self) -> bool:
+        try:
+            self.as_dict()  # obtain meta via Http
+            return True
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                return False
+            raise e
 
     def as_dict(self) -> Dict:
         if not hasattr(self, "_meta"):

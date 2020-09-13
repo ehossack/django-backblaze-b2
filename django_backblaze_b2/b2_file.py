@@ -24,10 +24,11 @@ class B2File(File):
         self._sizeProvider = sizeProvider
         self._fileInfos = fileInfos
         self._mode: str = mode
-        self._hasOpenHandle: bool = False
+        self._hasUnwrittenData: bool = False
         self._contents: Optional[IO] = None
 
-    @property  # https://github.com/python/mypy/issues/4125
+    # https://github.com/python/mypy/issues/4125 -- kinda makes you wonder why we like mypy?
+    @property  # type: ignore
     def file(self) -> IO[Any]:  # type: ignore
         if self._contents is None:
             data = self._readFileContents()
@@ -36,7 +37,7 @@ class B2File(File):
 
     # https://github.com/python/mypy/issues/1465
     @file.setter  # type: ignore
-    def _setFile(self, value: IO[Any]) -> None:
+    def file(self, value: IO[Any]) -> None:
         self._contents = value
 
     def _readFileContents(self) -> bytes:
@@ -58,24 +59,26 @@ class B2File(File):
     def write(self, content: bytes) -> int:
         if "w" not in self._mode:
             raise AttributeError("File was not opened for write access.")
-        self._setFile(  # change after https://github.com/python/mypy/issues/1465
-            BytesIO(content)
-        )
-        self._hasOpenHandle = True
+        self.file = BytesIO(content)
+
+        self._hasUnwrittenData = True
         return len(content)
 
     def close(self) -> None:
-        if self._hasOpenHandle:
-            self._save(self.file)
+        if self._hasUnwrittenData:
+            self.saveAndRetrieveFile(self.file)
         self.file.close()
 
-    def _save(self, content: IO[Any]) -> str:
+    def saveAndRetrieveFile(self, content: IO[Any]) -> str:
         """
         Save and retrieve the filename.
         If the file exists it will make another version of that file.
         """
         logger.debug(f"Saving {self.name} to b2 bucket ({self._bucket.get_id()})")
         self._bucket.upload_bytes(
-            data_bytes=content.read(), file_name=self.name, file_infos=self._fileInfos,
+            data_bytes=content.read(),
+            file_name=self.name,
+            file_infos=self._fileInfos,
         )
+        self._hasUnwrittenData = False
         return self.name
