@@ -20,11 +20,9 @@ def test_requiresConfiguration():
 
 
 def test_explicitOptsTakePrecendenceOverDjangoConfig(settings):
-    with mock.patch.object(
-        settings, "BACKBLAZE_CONFIG", {"bucket": "uncool-bucket"}
-    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(
-        B2Api, "get_bucket_by_name"
-    ):
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {"bucket": "uncool-bucket"}), mock.patch.object(
+        B2Api, "authorize_account"
+    ), mock.patch.object(B2Api, "get_bucket_by_name"):
         BackblazeB2Storage(opts={"bucket": "cool-bucket"})
 
         B2Api.get_bucket_by_name.assert_called_once_with("cool-bucket")
@@ -64,18 +62,14 @@ def test_defaultsToNotCreatingBucket(settings):
 def test_canCreateBucket(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}), mock.patch.object(
         B2Api, "authorize_account"
-    ), mock.patch.object(
-        B2Api, "get_bucket_by_name", side_effect=NonExistentBucket
-    ), mock.patch.object(
+    ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket), mock.patch.object(
         B2Api, "create_bucket"
     ):
 
         BackblazeB2Storage(opts={"nonExistentBucketDetails": {}})
 
         B2Api.get_bucket_by_name.assert_called_once_with("django")
-        B2Api.create_bucket.assert_called_once_with(
-            name="django", bucket_type="allPrivate"
-        )
+        B2Api.create_bucket.assert_called_once_with(name="django", bucket_type="allPrivate")
 
 
 def test_lazyAuthorization(settings):
@@ -136,9 +130,7 @@ def test_notImplementedMethods(settings):
             with pytest.raises(NotImplementedError) as error:
                 callable(None)
 
-            assert f"subclasses of Storage must provide a {method}() method" in str(
-                error
-            )
+            assert f"subclasses of Storage must provide a {method}() method" in str(error)
 
 
 def test_existsFileDoesNotExist(settings):

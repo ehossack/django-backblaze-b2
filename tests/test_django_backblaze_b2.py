@@ -43,13 +43,9 @@ def test_uploadsBytesToBucket(tempFile):
         assert filesObject.publicFile.url == "http://randonneurs.bc.ca"
         tempFile.seek(0)
         bucket.upload_bytes.assert_called_with(
-            data_bytes=tempFile.read(),
-            file_name=f"uploads/{tempFile.name}",
-            file_infos={},
+            data_bytes=tempFile.read(), file_name=f"uploads/{tempFile.name}", file_infos={},
         )
-        getDownloadUrl.assert_called_with(
-            bucket_name="django", file_name=f"uploads/{tempFile.name}"
-        )
+        getDownloadUrl.assert_called_with(bucket_name="django", file_name=f"uploads/{tempFile.name}")
 
 
 @pytest.mark.django_db
@@ -63,9 +59,7 @@ def test_deletesFromBucket(tempFile):
         filesObject = Files.objects.create(publicFile=tempFile)
         filesObject.publicFile.delete()
 
-        deletion.assert_called_with(
-            file_id="someId", file_name=f"uploads/{tempFile.name}"
-        )
+        deletion.assert_called_with(file_id="someId", file_name=f"uploads/{tempFile.name}")
 
 
 @pytest.mark.django_db
@@ -79,9 +73,7 @@ def test_worksWithFieldFileWriteOperation(tempFile):
             f.write("new-contents".encode("utf-8"))
 
         bucket.upload_bytes.assert_called_with(
-            data_bytes=b"new-contents",
-            file_name=f"uploads/{tempFile.name}",
-            file_infos={},
+            data_bytes=b"new-contents", file_name=f"uploads/{tempFile.name}", file_infos={},
         )
 
 
@@ -132,9 +124,7 @@ def _authorizedB2Connection():
 
 @contextmanager
 def _mockedBucket():
-    with _authorizedB2Connection(), mock.patch.object(
-        B2Api, "get_bucket_by_name", return_value=bucket
-    ):
+    with _authorizedB2Connection(), mock.patch.object(B2Api, "get_bucket_by_name", return_value=bucket):
         yield
 
 
@@ -152,9 +142,7 @@ def _fileMeta(size: Optional[int] = None, id: str = "someId"):
         return_value=False,  # it's easier for our tests to assume false,
         # because django will try to generate a new name if true
         # https://github.com/django/django/blob/3.1.1/django/core/files/storage.py#L82
-    ), mock.patch.object(
-        FileMetaShim, "contentLength", new_callable=getSize,
-    ), mock.patch.object(
+    ), mock.patch.object(FileMetaShim, "contentLength", new_callable=getSize,), mock.patch.object(
         FileMetaShim, "id", new_callable=mock.PropertyMock, return_value=id,
     ):
         yield

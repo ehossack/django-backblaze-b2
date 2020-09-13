@@ -53,11 +53,7 @@ class BackblazeB2Storage(Storage):
         self._bucketName = opts["bucket"]
         self._defaultFileInfo = opts["defaultFileInfo"]
         self._authInfo = dict(
-            [
-                (k, v)
-                for k, v in opts.items()
-                if k in ["realm", "application_key_id", "application_key"]
-            ]
+            [(k, v) for k, v in opts.items() if k in ["realm", "application_key_id", "application_key"]]
         )
 
         if opts["authorizeOnInit"]:
@@ -84,25 +80,17 @@ class BackblazeB2Storage(Storage):
             self._bucket = self.b2Api.get_bucket_by_name(self._bucketName)
         except NonExistentBucket as e:
             if newBucketDetails is not None:
-                logger.debug(
-                    f"Bucket {self._bucketName} not found. Creating with details: {newBucketDetails}"
-                )
+                logger.debug(f"Bucket {self._bucketName} not found. Creating with details: {newBucketDetails}")
                 if "bucket_type" not in newBucketDetails:
                     newBucketDetails["bucket_type"] = "allPrivate"
-                self._bucket = self.b2Api.create_bucket(
-                    name=self._bucketName, **newBucketDetails
-                )
+                self._bucket = self.b2Api.create_bucket(name=self._bucketName, **newBucketDetails)
             else:
                 raise e
         logger.debug(f"Connected to bucket {self._bucket.as_dict()}")
 
     def _open(self, name: str, mode: str) -> File:
         return B2File(
-            name=name,
-            bucket=self.bucket,
-            fileInfos=self._defaultFileInfo,
-            mode=mode,
-            sizeProvider=self.size,
+            name=name, bucket=self.bucket, fileInfos=self._defaultFileInfo, mode=mode, sizeProvider=self.size,
         )
 
     def _save(self, name: str, content: IO[Any]) -> str:
@@ -111,11 +99,7 @@ class BackblazeB2Storage(Storage):
         If the file exists it will make another version of that file.
         """
         return B2File(
-            name=name,
-            bucket=self.bucket,
-            fileInfos=self._defaultFileInfo,
-            mode="w",
-            sizeProvider=self.size,
+            name=name, bucket=self.bucket, fileInfos=self._defaultFileInfo, mode="w", sizeProvider=self.size,
         ).saveAndRetrieveFile(content)
 
     def path(self, name: str) -> str:
@@ -135,42 +119,32 @@ class BackblazeB2Storage(Storage):
     def url(self, name: Optional[str]) -> str:
         if not name:
             raise Exception("Name must be defined")
-        return self.b2Api.get_download_url_for_file_name(
-            bucket_name=self._bucketName, file_name=name
-        )
+        return self.b2Api.get_download_url_for_file_name(bucket_name=self._bucketName, file_name=name)
 
     def listdir(self, path: str) -> Tuple[List[str], List[str]]:
         """
         List the contents of the specified path. Return a 2-tuple of lists:
         the first item being directories, the second item being files.
         """
-        raise NotImplementedError(
-            "subclasses of Storage must provide a listdir() method"
-        )
+        raise NotImplementedError("subclasses of Storage must provide a listdir() method")
 
     def get_accessed_time(self, name: str) -> datetime:
         """
         Return the last accessed time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
-        raise NotImplementedError(
-            "subclasses of Storage must provide a get_accessed_time() method"
-        )
+        raise NotImplementedError("subclasses of Storage must provide a get_accessed_time() method")
 
     def get_created_time(self, name: str) -> datetime:
         """
         Return the creation time (as a datetime) of the file specified by name.
         The datetime will be timezone-aware if USE_TZ=True.
         """
-        raise NotImplementedError(
-            "subclasses of Storage must provide a get_created_time() method"
-        )
+        raise NotImplementedError("subclasses of Storage must provide a get_created_time() method")
 
     def get_modified_time(self, name: str) -> datetime:
         """
         Return the last modified time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
-        raise NotImplementedError(
-            "subclasses of Storage must provide a get_modified_time() method"
-        )
+        raise NotImplementedError("subclasses of Storage must provide a get_modified_time() method")

@@ -12,12 +12,7 @@ class B2File(File):
     """Read/Write as lazy as possible"""
 
     def __init__(
-        self,
-        name: str,
-        bucket: Bucket,
-        sizeProvider: Callable[[str], int],
-        fileInfos: Dict[str, str],
-        mode: str,
+        self, name: str, bucket: Bucket, sizeProvider: Callable[[str], int], fileInfos: Dict[str, str], mode: str,
     ):
         self.name: str = name
         self._bucket: Bucket = bucket
@@ -42,9 +37,7 @@ class B2File(File):
 
     def _readFileContents(self) -> bytes:
         download_dest = DownloadDestBytes()
-        self._bucket.download_file_by_name(
-            file_name=self.name, download_dest=download_dest
-        )
+        self._bucket.download_file_by_name(file_name=self.name, download_dest=download_dest)
         return download_dest.get_bytes_written()
 
     @property

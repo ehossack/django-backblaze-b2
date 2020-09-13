@@ -16,7 +16,7 @@ cleanup:
 
 lint:
 	poetry run mypy .
-	poetry run flake8 .
+	poetry run flake8 django_backblaze_b2 tests
 	poetry run black --check .
 
 format:

@@ -11,6 +11,4 @@ def index(request: HttpRequest) -> HttpResponse:
             model = Files
             fields = "__all__"
 
-    return render(
-        request, "index.html", {"form": FileForm(instance=Files.objects.first())}
-    )
+    return render(request, "index.html", {"form": FileForm(instance=Files.objects.first())})
