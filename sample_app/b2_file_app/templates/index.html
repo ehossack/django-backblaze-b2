@@ -1,0 +1,12 @@
+<html>
+    <title>Files page</title>
+    <body>
+        <div class="container">
+            <form enctype="multipart/form-data" method="post" action="/">
+                {% csrf_token %}
+                {{ form }}
+                <input type="submit" value="Submit">
+            </form>
+        </div>
+    </body>
+</html>

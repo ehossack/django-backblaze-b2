@@ -1,5 +1,9 @@
 # django-backblaze-b2
 
+[![pypi version](https://img.shields.io/pypi/v/django-backblaze-b2)](https://pypi.org/project/django-backblaze-b2/)
+[![python version](https://img.shields.io/pypi/pyversions/django-backblaze-b2)](https://pypi.org/project/django-backblaze-b2/)
+[![django version](https://img.shields.io/pypi/djversions/django-backblaze-b2)](https://pypi.org/project/django-backblaze-b2/)
+
 A storage backend for Django that uses [Backblaze's B2 APIs](https://www.backblaze.com/b2/cloud-storage.html).
 
 Implementation wraps [Official Python SDK](https://github.com/Backblaze/b2-sdk-python)
@@ -108,8 +112,9 @@ Contributions welcome!
 ### Requires
 
 * python
-* (optional) pyenv
 * GNU Make
+* (optional) pyenv - align local version
+* (optional) docker - run sample app
 
 ### Running
 
@@ -120,6 +125,10 @@ Contributions welcome!
 * You can view test coverage with `make test-coverage`, then see in the terminal, 
 open `test/htmlcov/index.html`
 or use `cov.xml` in your favourite IDE like VSCode
+
+### Releasing
+
+1. `TWINE_PASSWORD=<api key> make release`
 
 ### Cleanup
 
