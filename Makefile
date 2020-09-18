@@ -39,6 +39,7 @@ test-coverage: tests/test_project/files/migrations/0001_initial.py
 test-ci: tests/test_project/files/migrations/0001_initial.py
 	poetry run pytest \
 		--junitxml=tests/test-results/junit.xml \
+		--cov=django_backblaze_b2 \
 		--cov-report html:tests/htmlcov \
 		tests
 
