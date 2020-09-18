@@ -108,8 +108,9 @@ Contributions welcome!
 ### Requires
 
 * python
-* (optional) pyenv
 * GNU Make
+* (optional) pyenv - align local version
+* (optional) docker - run sample app
 
 ### Running
 
