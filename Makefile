@@ -12,7 +12,7 @@ cleanup:
 	@cat requirements.txt
 	@echo ""
 	@echo "You may uninstall these"
-	rm -rf tests/htmlcov tests/cov.xml .coverage
+	rm -rf tests/htmlcov tests/cov.xml .coverage tests/test-results
 
 lint:
 	poetry run mypy .
@@ -34,6 +34,12 @@ test-coverage:
 		--cov-report term:skip-covered \
 		--cov-report html:tests/htmlcov \
 		--cov-report xml:tests/cov.xml \
+		tests
+
+test-ci:
+	poetry run pytest \
+		--junitxml=tests/test-results/junit.xml \
+		--cov-report html:tests/htmlcov \
 		tests
 
 run-django:

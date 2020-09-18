@@ -1,0 +1,29 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
+jobs:
+  build-and-test:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          command: make setup
+          name: Install dependencies
+      - run:
+          command: make test-ci
+          name: Run tests
+      - run:
+          command: make lint
+          name: Lint files
+      - store_test_results:
+          path: tests/test-results
+      - store_artifacts:
+          path: tests/htmlcov
+
+workflows:
+  main:
+    jobs:
+      - build-and-test
