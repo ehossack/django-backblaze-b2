@@ -17,7 +17,7 @@ cleanup: clean-django-files cleanup-docker
 
 lint: clean-django-files
 	poetry run mypy .
-	poetry run flake8 django_backblaze_b2 tests
+	poetry run flake8 django_backblaze_b2 tests sample_app
 	poetry run black --check .
 
 format:
@@ -59,6 +59,7 @@ run-test-proj: clean-django-files tests/test_project/files/migrations/0001_initi
 cleanup-docker:
 	@if docker info >/dev/null 2>&1; then \
 		docker rmi -f b2-django-sample:dev; \
+		docker rmi -f b2-django-release:latest; \
 	fi
 
 define DOCKERFILE
@@ -85,6 +86,31 @@ run-sample-proj:
 	@echo "Build dockerfile b2-django-sample:dev"
 	@echo "$$DOCKERFILE" | docker build -t b2-django-sample:dev -f- . 
 	touch sample_app/sample_app/settings.env
-	docker run -p 8000:8000 \
+	docker run --rm -p 8000:8000 \
 		--env-file sample_app/sample_app/settings.env \
 		-it b2-django-sample:dev
+
+define RELEASE_DOCKERFILE
+FROM python:3.8
+RUN apt-get update && apt-get install -y pandoc
+RUN pip install --upgrade pip && pip install setuptools wheel twine
+COPY django_backblaze_b2 ./django_backblaze_b2
+COPY setup.* README.md MANIFEST.in ./
+RUN pandoc -s README.md -o README.rst && python setup.py sdist bdist_wheel
+ENV PYPI_REPO testpypi
+CMD echo "uploading files to pypi" && \
+	ls -al dist && \
+	twine upload \
+		--repository $$PYPI_REPO \
+		--username __token__ \
+		--password $$TWINE_PASSWORD \
+		dist/*
+endef
+export RELEASE_DOCKERFILE
+release:
+	@echo "Build dockerfile b2-django-release:latest"
+	@echo "$$RELEASE_DOCKERFILE" | docker build -t b2-django-release:latest -f- . 
+	@[ "${TWINE_PASSWORD}" ] || ( echo "TWINE_PASSWORD is not set"; exit 1 )
+	docker run --rm \
+		-e TWINE_PASSWORD=${TWINE_PASSWORD} \
+		-it b2-django-release:latest
