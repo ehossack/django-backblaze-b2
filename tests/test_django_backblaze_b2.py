@@ -1,10 +1,14 @@
+import logging
 from contextlib import contextmanager
-from typing import Optional
+from typing import Callable, Optional
 from unittest import mock
 
 import pytest
 from b2sdk.v1 import B2Api, Bucket
+from django.contrib.auth.models import User
 from django.core.files import File
+from django.http import FileResponse
+from django.test import Client
 
 from django_backblaze_b2 import __version__
 from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
@@ -13,7 +17,7 @@ bucket = mock.Mock(spec_set=Bucket)
 
 
 def test_version():
-    assert __version__ == "0.1.0"
+    assert __version__ == "1.0.0"
 
 
 @pytest.mark.django_db
@@ -37,10 +41,10 @@ def test_uploadsBytesToBucket(tempFile):
     ) as getDownloadUrl:
         from tests.test_project.files.models import Files
 
-        filesObject = Files.objects.create(publicFile=tempFile)
+        filesObject = Files.objects.create(b2StorageFile=tempFile)
 
-        assert filesObject.publicFile.size == tempFile.size
-        assert filesObject.publicFile.url == "http://randonneurs.bc.ca"
+        assert filesObject.b2StorageFile.size == tempFile.size
+        assert filesObject.b2StorageFile.url == "http://randonneurs.bc.ca"
         tempFile.seek(0)
         bucket.upload_bytes.assert_called_with(
             data_bytes=tempFile.read(), file_name=f"uploads/{tempFile.name}", file_infos={},
@@ -56,8 +60,8 @@ def test_deletesFromBucket(tempFile):
     ) as deletion:
         from tests.test_project.files.models import Files
 
-        filesObject = Files.objects.create(publicFile=tempFile)
-        filesObject.publicFile.delete()
+        filesObject = Files.objects.create(b2StorageFile=tempFile)
+        filesObject.b2StorageFile.delete()
 
         deletion.assert_called_with(file_id="someId", file_name=f"uploads/{tempFile.name}")
 
@@ -109,11 +113,147 @@ def test_storageCanOpenFile(tempFile):
     with _fileMeta(size=tempFile.size):
         from tests.test_project.files.models import Files
 
-        filesObject = Files.objects.create(publicFile=tempFile)
-        storage = Files._meta.get_field("publicFile").storage
-        b2File = storage.open(filesObject.publicFile.name, "r")
+        filesObject = Files.objects.create(b2StorageFile=tempFile)
+        storage = Files._meta.get_field("b2StorageFile").storage
+        b2File = storage.open(filesObject.b2StorageFile.name, "r")
 
         assert b2File.size == tempFile.size
+
+
+@pytest.mark.django_db
+def test_generatesPublicFileUrl(tempFile):
+
+    with _mockedBucket(), _fileMeta(size=tempFile.size):
+        from tests.test_project.files.models import Files
+
+        filesObject = Files.objects.create(publicFile=tempFile)
+
+        assert filesObject.publicFile.size == tempFile.size
+        assert filesObject.publicFile.url == f"/b2/uploads/{tempFile.name}"
+
+
+@pytest.mark.django_db
+def test_generatesPublicFileUrlAsRawB2Url():
+    with _mockedBucket(), mock.patch.object(
+        bucket, "as_dict", return_value={"bucketType": "allPublic"}
+    ), mock.patch.object(
+        B2Api, "get_download_url_for_file_name", return_value="http://randonneurs.bc.ca"
+    ) as getDownloadUrl:
+        from django_backblaze_b2 import PublicStorage
+
+        assert PublicStorage().url("some/file.jpeg") == "http://randonneurs.bc.ca"
+        getDownloadUrl.assert_called_with(bucket_name="django", file_name="some/file.jpeg")
+
+
+@pytest.mark.django_db
+def test_canDownloadUsingPublicStorage(tempFile, client: Client):
+    _mockFileDownload(tempFile)
+    fileExists = False
+    with _mockedBucket(), _fileMeta(size=tempFile.size, doesFileExist=lambda: fileExists):
+        from tests.test_project.files.models import Files
+
+        filesObject = Files.objects.create(publicFile=tempFile)
+        fileExists = True
+        response = client.get(filesObject.publicFile.url)
+
+        assert isinstance(response, FileResponse)
+        assert response.getvalue() == tempFile.file.read()
+
+
+@pytest.mark.django_db
+def test_requiresAuthForLoggedInStorage(tempFile, client: Client):
+    _mockFileDownload(tempFile)
+    with _mockedBucket(), _fileMeta(size=tempFile.size):
+        from tests.test_project.files.models import Files
+
+        filesObject = Files.objects.create(loggedInFile=tempFile)
+        response = client.get(filesObject.loggedInFile.url)
+
+        assert response.status_code == 302
+        assert response.get("Location") == f"/accounts/login/?next=/b2l/uploads/{tempFile}"
+
+
+@pytest.mark.django_db
+def test_requiresAuthForStaffStorage(tempFile, client: Client):
+    _mockFileDownload(tempFile)
+    with _mockedBucket(), _fileMeta(size=tempFile.size):
+        from tests.test_project.files.models import Files
+
+        filesObject = Files.objects.create(staffFile=tempFile)
+        response = client.get(filesObject.staffFile.url)
+
+        assert response.status_code == 302
+        assert response.get("Location") == f"/accounts/login/?next=/b2s/uploads/{tempFile}"
+
+
+@pytest.mark.django_db
+def test_requiresAuthForStaffStorageWhenLoggedIn(tempFile, client: Client):
+    _mockFileDownload(tempFile)
+    with _mockedBucket(), _fileMeta(size=tempFile.size):
+        from tests.test_project.files.models import Files
+
+        user = User.objects.create_user(username="user", password="user", is_staff=False)
+        filesObject = Files.objects.create(staffFile=tempFile)
+        client.force_login(user)
+        response = client.get(filesObject.staffFile.url)
+
+        assert response.status_code == 401
+        assert response.content == b"Unauthorized"
+
+
+@pytest.mark.django_db
+def test_canDownloadUsingLoggedInStorage(tempFile, client: Client):
+    _mockFileDownload(tempFile)
+    fileExists = False
+    with _mockedBucket(), _fileMeta(size=tempFile.size, doesFileExist=lambda: fileExists):
+        from tests.test_project.files.models import Files
+
+        user = User.objects.create_user(username="user", password="user", is_staff=False)
+        filesObject = Files.objects.create(loggedInFile=tempFile)
+        fileExists = True
+        client.force_login(user)
+        response = client.get(filesObject.loggedInFile.url)
+
+        assert isinstance(response, FileResponse)
+        assert response.getvalue() == tempFile.file.read()
+
+
+@pytest.mark.django_db
+def test_canDownloadUsingStaffStorage(tempFile, client: Client):
+    _mockFileDownload(tempFile)
+    fileExists = False
+    with _mockedBucket(), _fileMeta(size=tempFile.size, doesFileExist=lambda: fileExists):
+        from tests.test_project.files.models import Files
+
+        staffUser = User.objects.create_user(username="user", password="user", is_staff=True)
+        filesObject = Files.objects.create(staffFile=tempFile)
+        fileExists = True
+        client.force_login(staffUser)
+        response = client.get(filesObject.staffFile.url)
+
+        assert isinstance(response, FileResponse)
+        assert response.getvalue() == tempFile.file.read()
+
+
+@pytest.mark.django_db
+def test_appropriatelyHandlesNonExtantFile(tempFile, client: Client, caplog):
+    caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
+    _mockFileDownload(tempFile)
+    with _mockedBucket(), _fileMeta(size=tempFile.size, doesFileExist=lambda: False):
+        from tests.test_project.files.models import Files
+
+        filesObject = Files.objects.create(publicFile=tempFile)
+        response = client.get(filesObject.publicFile.url)
+
+        assert response.status_code == 404
+        assert response.content.decode("utf-8") == f"Could not find file: uploads/{tempFile}"
+        assert caplog.record_tuples == [
+            ("django-backblaze-b2", 10, f"Saving uploads/{tempFile} to b2 bucket ({bucket.get_id()})"),
+            ("django-backblaze-b2", 20, "PublicStorage instantiated to use bucket django"),
+            ("django-backblaze-b2", 40, f"Debug log failed. Could not retrive b2 file url for uploads/{tempFile}"),
+            ("django-backblaze-b2", 10, f"Connected to bucket {bucket.as_dict()}"),
+            ("django.request", 30, f"Not Found: /b2/uploads/{tempFile}"),
+        ]
 
 
 @contextmanager
@@ -129,7 +269,7 @@ def _mockedBucket():
 
 
 @contextmanager
-def _fileMeta(size: Optional[int] = None, id: str = "someId"):
+def _fileMeta(size: Optional[int] = None, id: str = "someId", doesFileExist: Callable[[], bool] = lambda: False):
     def getSize():
         if size is not None:
             return size
@@ -139,10 +279,10 @@ def _fileMeta(size: Optional[int] = None, id: str = "someId"):
         FileMetaShim,
         "exists",
         new_callable=mock.PropertyMock,
-        return_value=False,  # it's easier for our tests to assume false,
+        side_effect=doesFileExist,  # default return false,
         # because django will try to generate a new name if true
         # https://github.com/django/django/blob/3.1.1/django/core/files/storage.py#L82
-    ), mock.patch.object(FileMetaShim, "contentLength", new_callable=getSize,), mock.patch.object(
+    ), mock.patch.object(FileMetaShim, "contentLength", new_callable=getSize), mock.patch.object(
         FileMetaShim, "id", new_callable=mock.PropertyMock, return_value=id,
     ):
         yield
@@ -151,10 +291,10 @@ def _fileMeta(size: Optional[int] = None, id: str = "someId"):
 def _getFileFromNewFilesModelObject(tempFile: File) -> File:
     from tests.test_project.files.models import Files
 
-    Files.objects.create(publicFile=tempFile)
+    Files.objects.create(b2StorageFile=tempFile)
     filesObject = Files.objects.all()[0]
 
-    return filesObject.publicFile
+    return filesObject.b2StorageFile
 
 
 def _mockFileDownload(tempFile: File) -> None:
@@ -162,6 +302,7 @@ def _mockFileDownload(tempFile: File) -> None:
         if file_name.endswith(tempFile.name):
             tempFile.seek(0)
             download_dest.bytes_written = tempFile.read()
+            tempFile.seek(0)
             return None
 
     bucket.download_file_by_name.side_effect = downloadByName

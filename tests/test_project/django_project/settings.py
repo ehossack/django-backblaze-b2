@@ -117,4 +117,9 @@ sys.path.append(str(BASE_DIR.resolve()))
 INSTALLED_APPS = ["tests.test_project.files.apps.FilesConfig"] + INSTALLED_APPS
 DEFAULT_FILE_STORAGE = "django_backblaze_b2.storage.BackblazeB2Storage"
 
-BACKBLAZE_CONFIG: Dict[str, Any] = {"validateOnInit": False, "authorizeOnInit": False}
+BACKBLAZE_CONFIG: Dict[str, Any] = {
+    "validateOnInit": False,
+    "authorizeOnInit": False,
+    "application_key_id": "--",
+    "application_key": "--",
+}

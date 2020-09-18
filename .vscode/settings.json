@@ -31,6 +31,9 @@
   "python.testing.pytestEnabled": true,
   "prettier.enable": false,
   "files.exclude": {
-    "**/__pycache__/": true
+    "**/__pycache__/": true,
+    ".pytest_cache": true,
+    ".mypy_cache": true,
+    ".venv": true
   },
 }

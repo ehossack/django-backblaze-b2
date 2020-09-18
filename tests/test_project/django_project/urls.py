@@ -18,5 +18,5 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("files/", include("files.urls")),
+    path("", include("django_backblaze_b2.urls")),
 ]

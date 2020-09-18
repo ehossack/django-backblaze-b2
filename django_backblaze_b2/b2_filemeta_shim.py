@@ -1,7 +1,10 @@
+from logging import getLogger
 from typing import Dict
 
 from b2sdk.v1 import B2Api, Bucket
 from requests import HTTPError
+
+logger = getLogger("django-backblaze-b2")
 
 
 class FileMetaShim:
@@ -38,6 +41,7 @@ class FileMetaShim:
 
     def as_dict(self) -> Dict:
         if not hasattr(self, "_meta"):
+            logger.debug(f"HEAD bucket={self._bucket.name} file={self._filename}")
             downloadUrl = self._b2Api.session.get_download_url_by_name(self._bucket.name, self._filename)
             downloadAuthorization = self._bucket.get_download_authorization(self._filename, 30)
             response = self._b2Api.raw_api.b2_http.session.head(
