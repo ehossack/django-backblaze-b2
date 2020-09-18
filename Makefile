@@ -97,11 +97,9 @@ RUN pip install --upgrade pip && pip install setuptools wheel twine
 COPY django_backblaze_b2 ./django_backblaze_b2
 COPY setup.* README.md MANIFEST.in ./
 RUN pandoc -s README.md -o README.rst && python setup.py sdist bdist_wheel
-ENV PYPI_REPO testpypi
 CMD echo "uploading files to pypi" && \
 	ls -al dist && \
 	twine upload \
-		--repository $$PYPI_REPO \
 		--username __token__ \
 		--password $$TWINE_PASSWORD \
 		dist/*
