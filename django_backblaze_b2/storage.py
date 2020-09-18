@@ -1,9 +1,9 @@
 from datetime import datetime
 from logging import getLogger
-from typing import IO, Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
+from typing import IO, Any, Dict, List, Optional, Tuple
 
 from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo
-from b2sdk.v1.exception import NonExistentBucket
+from b2sdk.v1.exception import FileNotPresent, NonExistentBucket
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
@@ -11,43 +11,17 @@ from django.utils.deconstruct import deconstructible
 
 from django_backblaze_b2.b2_file import B2File
 from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
+from django_backblaze_b2.options import BackblazeB2StorageOptions, getDefaultB2StorageOptions
 
 logger = getLogger("django-backblaze-b2")
 
 
-class Configuration(TypedDict):
-    realm: Literal["production"]
-    application_key_id: str
-    application_key: str
-    bucket: str
-    authorizeOnInit: bool
-    validateOnInit: bool
-    nonExistentBucketDetails: Optional[Dict[str, Union[str, Dict[str, Any]]]]
-    defaultFileInfo: Dict[str, Any]
-
-
 @deconstructible
 class BackblazeB2Storage(Storage):
+    """Storage class which fulfills the Django Storage contract through b2 apis"""
+
     def __init__(self, **kwargs):
-        """Setting terminology taken from:
-        https://b2-sdk-python.readthedocs.io/en/master/glossary.html#term-application-key-ID
-        """
-        from django.conf import settings
-
-        if not hasattr(settings, "BACKBLAZE_CONFIG"):
-            raise ImproperlyConfigured("add BACKBLAZE_CONFIG dict to django settings")
-
-        opts: Configuration = {
-            "realm": "production",
-            "application_key_id": "---",
-            "application_key": "---",
-            "bucket": "django",
-            "authorizeOnInit": True,
-            "validateOnInit": True,
-            "nonExistentBucketDetails": None,
-            "defaultFileInfo": {},
-        }
-        opts.update(settings.BACKBLAZE_CONFIG)
+        opts = self._getDjangoSettingsOptions(kwargs.get("opts", {}))
         opts.update(kwargs.get("opts", {}))
 
         self._bucketName = opts["bucket"]
@@ -56,10 +30,29 @@ class BackblazeB2Storage(Storage):
             [(k, v) for k, v in opts.items() if k in ["realm", "application_key_id", "application_key"]]
         )
 
+        logger.info(f"{self.__class__.__name__} instantiated to use bucket {self._bucketName}")
         if opts["authorizeOnInit"]:
+            logger.debug(f"{self.__class__.__name__} authorizing")
             self.b2Api
             if opts["validateOnInit"]:
                 self._getOrCreateBucket(opts["nonExistentBucketDetails"])
+
+    def _getDjangoSettingsOptions(self, kwargOpts: Dict) -> BackblazeB2StorageOptions:
+        """Setting terminology taken from:
+        https://b2-sdk-python.readthedocs.io/en/master/glossary.html#term-application-key-ID
+        """
+        from django.conf import settings
+
+        if not hasattr(settings, "BACKBLAZE_CONFIG"):
+            raise ImproperlyConfigured("add BACKBLAZE_CONFIG dict to django settings")
+        if "application_key_id" not in settings.BACKBLAZE_CONFIG or "application_key" not in settings.BACKBLAZE_CONFIG:
+            raise ImproperlyConfigured(
+                "At minimium BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'"
+                f"\nfound: {settings.BACKBLAZE_CONFIG}"
+            )
+        opts = getDefaultB2StorageOptions()
+        opts.update(settings.BACKBLAZE_CONFIG)  # type: ignore
+        return opts
 
     @property
     def b2Api(self) -> B2Api:
@@ -106,9 +99,12 @@ class BackblazeB2Storage(Storage):
         return name
 
     def delete(self, name: str) -> None:
-        fileId = FileMetaShim(self.b2Api, self.bucket, name).id
-        logger.debug(f"Deleting file {name} id=({fileId})")
-        self.b2Api.delete_file_version(file_id=fileId, file_name=name)
+        try:
+            fileId = FileMetaShim(self.b2Api, self.bucket, name).id
+            logger.debug(f"Deleting file {name} id=({fileId})")
+            self.b2Api.delete_file_version(file_id=fileId, file_name=name)
+        except FileNotPresent:
+            logger.debug("Not found")
 
     def exists(self, name: str) -> bool:
         return FileMetaShim(self.b2Api, self.bucket, name).exists
@@ -119,7 +115,13 @@ class BackblazeB2Storage(Storage):
     def url(self, name: Optional[str]) -> str:
         if not name:
             raise Exception("Name must be defined")
-        return self.b2Api.get_download_url_for_file_name(bucket_name=self._bucketName, file_name=name)
+        return self._getFileUrl(name)
+
+    def _getFileUrl(self, name: str) -> str:
+        return self.getBackblazeUrl(name)
+
+    def getBackblazeUrl(self, filename: str) -> str:
+        return self.b2Api.get_download_url_for_file_name(bucket_name=self._bucketName, file_name=filename)
 
     def listdir(self, path: str) -> Tuple[List[str], List[str]]:
         """

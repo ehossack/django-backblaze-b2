@@ -22,13 +22,13 @@ lint:
 format:
 	poetry run black .
 
-test:
+test: tests/test_project/files/migrations/0001_initial.py
 	poetry run pytest tests
 
-test-verbose:
+test-verbose: tests/test_project/files/migrations/0001_initial.py
 	PYTEST_ADDOPTS="-vv" make test
 
-test-coverage:
+test-coverage: tests/test_project/files/migrations/0001_initial.py
 	poetry run pytest \
 		--cov=django_backblaze_b2 \
 		--cov-report term:skip-covered \
@@ -36,14 +36,20 @@ test-coverage:
 		--cov-report xml:tests/cov.xml \
 		tests
 
-test-ci:
+test-ci: tests/test_project/files/migrations/0001_initial.py
 	poetry run pytest \
 		--junitxml=tests/test-results/junit.xml \
 		--cov-report html:tests/htmlcov \
 		tests
 
-run-django:
-	rm -rf tests/test_project/db.sqlite3 tests/test_project/files/migrations/0001_initial.py
+clean-django-files:
+	@rm -rf \
+		tests/test_project/db.sqlite3 \
+		tests/test_project/files/migrations/0001_initial.py
+
+tests/test_project/files/migrations/0001_initial.py:
 	poetry run python tests/test_project/manage.py makemigrations files
 	poetry run python tests/test_project/manage.py migrate
+
+run-test-proj: clean-django-files tests/test_project/files/migrations/0001_initial.py
 	poetry run python tests/test_project/manage.py runserver

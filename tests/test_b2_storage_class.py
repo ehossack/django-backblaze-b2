@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
@@ -19,8 +20,19 @@ def test_requiresConfiguration():
         assert "add BACKBLAZE_CONFIG dict to django settings" in str(error)
 
 
+def test_requiresConfigurationForAuth(settings):
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}):
+
+        with pytest.raises(ImproperlyConfigured) as error:
+            BackblazeB2Storage()
+
+        assert ("At minimium BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'") in str(
+            error
+        )
+
+
 def test_explicitOptsTakePrecendenceOverDjangoConfig(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {"bucket": "uncool-bucket"}), mock.patch.object(
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({"bucket": "uncool-bucket"})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name"):
         BackblazeB2Storage(opts={"bucket": "cool-bucket"})
@@ -29,7 +41,7 @@ def test_explicitOptsTakePrecendenceOverDjangoConfig(settings):
 
 
 def test_defaultsToAuthorizeOnInit(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}), mock.patch.object(
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name"):
         BackblazeB2Storage(opts={})
@@ -40,7 +52,7 @@ def test_defaultsToAuthorizeOnInit(settings):
 
 
 def test_defaultsToValidateInit(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}), mock.patch.object(
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name"):
         BackblazeB2Storage(opts={})
@@ -49,7 +61,7 @@ def test_defaultsToValidateInit(settings):
 
 
 def test_defaultsToNotCreatingBucket(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}), mock.patch.object(
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket):
 
@@ -60,7 +72,7 @@ def test_defaultsToNotCreatingBucket(settings):
 
 
 def test_canCreateBucket(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}), mock.patch.object(
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket), mock.patch.object(
         B2Api, "create_bucket"
@@ -73,7 +85,7 @@ def test_canCreateBucket(settings):
 
 
 def test_lazyAuthorization(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}), mock.patch.object(
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name"):
 
@@ -88,7 +100,7 @@ def test_lazyAuthorization(settings):
 
 
 def test_lazyBucketNonExistent(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}), mock.patch.object(
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket):
 
@@ -101,14 +113,14 @@ def test_lazyBucketNonExistent(settings):
 
 
 def test_nameUsesLiteralFilenameAsPath(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}):
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})):
         storage = BackblazeB2Storage(opts={"authorizeOnInit": False})
 
         assert storage.path("some/file.txt") == "some/file.txt"
 
 
 def test_urlRequiresName(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}):
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})):
         storage = BackblazeB2Storage(opts={"authorizeOnInit": False})
 
         with pytest.raises(Exception) as error:
@@ -118,7 +130,7 @@ def test_urlRequiresName(settings):
 
 
 def test_notImplementedMethods(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}):
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})):
         storage = BackblazeB2Storage(opts={"authorizeOnInit": False})
 
         for method, callable in [
@@ -137,7 +149,7 @@ def test_existsFileDoesNotExist(settings):
     fileMetaResponse = mock.Mock(spec=Response)
     fileMetaResponse.status_code = 404
 
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}), mock.patch.object(
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name"), mock.patch.object(
         FileMetaShim, "as_dict", side_effect=HTTPError(response=fileMetaResponse)
@@ -153,7 +165,7 @@ def test_existsServerError(settings):
     fileMetaResponse = mock.Mock(spec=Response)
     fileMetaResponse.status_code = 500
 
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}), mock.patch.object(
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name"), mock.patch.object(
         FileMetaShim, "as_dict", side_effect=HTTPError(response=fileMetaResponse)
@@ -164,3 +176,7 @@ def test_existsServerError(settings):
             storage.exists("some/file.txt")
 
         assert raised.value.response.status_code == 500
+
+
+def _settingsDict(config: Dict[str, Any]) -> Dict[str, Any]:
+    return {"application_key_id": "---", "application_key": "---", **config}
