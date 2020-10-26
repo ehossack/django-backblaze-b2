@@ -14,7 +14,7 @@ class PublicStorage(BackblazeB2Storage):
 
     def _isPublicBucket(self) -> bool:
         if self._bucketInfo is None:
-            self._bucketInfo = self.bucket.as_dict().get("bucketType") == "allPublic"  # TODO: verify this works
+            self._bucketInfo = self.bucket.as_dict().get("bucketType") == "allPublic"
         return self._bucketInfo
 
     def _getFileUrl(self, name: str) -> str:
