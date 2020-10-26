@@ -5,10 +5,9 @@ import pytest
 from b2sdk.v1 import B2Api
 from b2sdk.v1.exception import NonExistentBucket
 from django.core.exceptions import ImproperlyConfigured
-from requests import HTTPError, Response
-
 from django_backblaze_b2 import BackblazeB2Storage
 from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
+from requests import HTTPError, Response
 
 
 def test_requiresConfiguration():
@@ -127,6 +126,17 @@ def test_urlRequiresName(settings):
             storage.url(name=None)
 
         assert "Name must be defined" in str(error)
+
+
+def test_get_available_nameWithOverwrites(settings):
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
+        B2Api, "authorize_account"
+    ), mock.patch.object(B2Api, "get_bucket_by_name"), mock.patch.object(FileMetaShim, "exists", return_value=True):
+        storage = BackblazeB2Storage(opts={"allowFileOverwrites": True})
+
+        availableName = storage.get_available_name("some_name.txt", max_length=None)
+
+        assert availableName == "some_name.txt"
 
 
 def test_notImplementedMethods(settings):
