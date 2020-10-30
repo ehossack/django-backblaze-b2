@@ -90,25 +90,7 @@ run-sample-proj:
 		--env-file sample_app/sample_app/settings.env \
 		-it b2-django-sample:dev
 
-define RELEASE_DOCKERFILE
-FROM python:3.8
-RUN apt-get update && apt-get install -y pandoc
-RUN pip install --upgrade pip && pip install setuptools wheel twine
-COPY django_backblaze_b2 ./django_backblaze_b2
-COPY setup.* README.md MANIFEST.in ./
-RUN pandoc -s README.md -o README.rst && python setup.py sdist bdist_wheel
-CMD echo "uploading files to pypi" && \
-	ls -al dist && \
-	twine upload \
-		--username __token__ \
-		--password $$TWINE_PASSWORD \
-		dist/*
-endef
-export RELEASE_DOCKERFILE
 release:
-	@echo "Build dockerfile b2-django-release:latest"
-	@echo "$$RELEASE_DOCKERFILE" | docker build -t b2-django-release:latest -f- . 
-	@[ "${TWINE_PASSWORD}" ] || ( echo "TWINE_PASSWORD is not set"; exit 1 )
-	docker run --rm \
-		-e TWINE_PASSWORD=${TWINE_PASSWORD} \
-		-it b2-django-release:latest
+	rm -rf dist
+	poetry build
+	poetry release

@@ -3,12 +3,44 @@ line-length = 120
 
 [tool.poetry]
 name = "django-backblaze-b2"
-version = "0.1.0"
-description = ""
-authors = ["Étienne H <et@hossack.me>"]
+version = "1.1.0"
+description = "A Django app to use backblaze b2 as storage."
+authors = ["Étienne H <django_backblaze_b2@internet-e-mail.com>"]
+maintainers = ["Étienne H <django_backblaze_b2@internet-e-mail.com>"]
+license = "BSD-2-Clause"
+readme = "README.md"
+homepage = "https://github.com/ehossack/django-backblaze-b2/"
+repository = "https://github.com/ehossack/django-backblaze-b2/"
+keywords = [
+    "django",
+    "storage",
+    "backblaze",
+    "b2",
+    "cloud"
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 3.0",
+    "Framework :: Django :: 3.1",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Development Status :: 5 - Production/Stable",
+    "Typing :: Typed",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+include = ["py.typed"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.6"
 b2sdk = "^1.1.4"
 django = ">=3.0"
 
