@@ -128,7 +128,7 @@ or use `cov.xml` in your favourite IDE like VSCode
 
 ### Releasing
 
-1. `TWINE_PASSWORD=<api key> make release`
+1. `make publish-to-pypi`
 
 ### Cleanup
 

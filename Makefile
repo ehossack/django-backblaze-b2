@@ -90,7 +90,7 @@ run-sample-proj:
 		--env-file sample_app/sample_app/settings.env \
 		-it b2-django-sample:dev
 
-release:
+publish-to-pypi:
 	rm -rf dist
 	poetry build
-	poetry release
+	poetry publish
