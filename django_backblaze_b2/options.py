@@ -16,6 +16,7 @@ class BackblazeB2StorageOptions(TypedDict):
     bucket: str
     authorizeOnInit: bool
     validateOnInit: bool
+    allowFileOverwrites: bool
     # see: https://b2-sdk-python.readthedocs.io/en/master/api/api.html#b2sdk.v1.B2Api.create_bucket
     nonExistentBucketDetails: Optional[Dict[str, Union[str, Dict[str, Any]]]]
     defaultFileInfo: Dict[str, Any]
@@ -30,6 +31,7 @@ def getDefaultB2StorageOptions() -> BackblazeB2StorageOptions:
         "bucket": "django",
         "authorizeOnInit": True,
         "validateOnInit": True,
+        "allowFileOverwrites": False,
         "nonExistentBucketDetails": None,
         "defaultFileInfo": {},
         "specificBucketNames": {"public": None, "loggedIn": None, "staff": None},

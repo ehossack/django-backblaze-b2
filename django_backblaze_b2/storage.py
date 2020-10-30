@@ -29,6 +29,7 @@ class BackblazeB2Storage(Storage):
         self._authInfo = dict(
             [(k, v) for k, v in opts.items() if k in ["realm", "application_key_id", "application_key"]]
         )
+        self._allowFileOverwrites = opts["allowFileOverwrites"]
 
         logger.info(f"{self.__class__.__name__} instantiated to use bucket {self._bucketName}")
         if opts["authorizeOnInit"]:
@@ -122,6 +123,11 @@ class BackblazeB2Storage(Storage):
 
     def getBackblazeUrl(self, filename: str) -> str:
         return self.b2Api.get_download_url_for_file_name(bucket_name=self._bucketName, file_name=filename)
+
+    def get_available_name(self, name: str, max_length: Optional[int] = None) -> str:
+        if self._allowFileOverwrites:
+            return name
+        return super().get_available_name(name, max_length)
 
     def listdir(self, path: str) -> Tuple[List[str], List[str]]:
         """
