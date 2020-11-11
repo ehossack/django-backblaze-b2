@@ -91,6 +91,10 @@ run-sample-proj:
 		-it b2-django-sample:dev
 
 publish-to-pypi:
+	$(eval VER_DESCRIPTION = $(shell bash -c 'read -p "Release Description: " desc; echo $$desc'))
+	$(eval PROJ_VERSION = $(shell poetry run python -c "import toml; print(toml.load('pyproject.toml')['tool']['poetry']['version'])"))
+	git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}'
+	git push --follow-tags
 	rm -rf dist
 	poetry build
 	poetry publish
