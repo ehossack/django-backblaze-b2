@@ -1,8 +1,9 @@
 from logging import getLogger
-from typing import Dict
 
+from b2sdk.exception import interpret_b2_error
 from b2sdk.v1 import B2Api, Bucket
-from requests import HTTPError
+from requests import HTTPError, Response
+from requests.models import CaseInsensitiveDict
 
 logger = getLogger("django-backblaze-b2")
 
@@ -37,16 +38,40 @@ class FileMetaShim:
         except HTTPError as e:
             if e.response.status_code == 404:
                 return False
-            raise e
+            try:
+                raise interpret_b2_error(
+                    e.response.status_code,
+                    e.response.json().get("code"),
+                    e.response.json().get("message"),
+                    e.response.headers,
+                )
+            except Exception:
+                logger.exception("Could not interpret b2 error")
+                raise Exception(f"Status: {e.response.status_code}, Content: {e.response.content}")
 
-    def as_dict(self) -> Dict:
+    def as_dict(self) -> CaseInsensitiveDict:
         if not hasattr(self, "_meta"):
             logger.debug(f"HEAD bucket={self._bucket.name} file={self._filename}")
-            downloadUrl = self._b2Api.session.get_download_url_by_name(self._bucket.name, self._filename)
-            downloadAuthorization = self._bucket.get_download_authorization(self._filename, 30)
-            response = self._b2Api.raw_api.b2_http.session.head(
-                downloadUrl, headers={"Authorization": downloadAuthorization}
-            )
-            response.raise_for_status()
-            self._meta = response.headers
+            head_attempts = 4
+            for _ in range(head_attempts - 1):
+                try:
+                    self._meta = self.get_head_response().headers
+                    return self._meta
+                except HTTPError as e:
+                    if head_attempts == 3 or e.response.status_code == 404:
+                        raise
+                    if not self._b2Api.session.authorize_automatically():
+                        raise
+
+            # try one last time
+            self._meta = self.get_head_response().headers
         return self._meta
+
+    def get_head_response(self) -> Response:
+        downloadUrl = self._b2Api.session.get_download_url_by_name(self._bucket.name, self._filename)
+        downloadAuthorization = self._bucket.get_download_authorization(self._filename, 30)
+        response = self._b2Api.raw_api.b2_http.session.head(
+            downloadUrl, headers={"Authorization": downloadAuthorization}
+        )
+        response.raise_for_status()
+        return response
