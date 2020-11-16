@@ -16,8 +16,10 @@ cleanup: clean-django-files cleanup-docker
 	@echo "You may uninstall these requirements should you desire"
 
 lint: clean-django-files
-	poetry run mypy .
-	poetry run flake8 django_backblaze_b2 tests sample_app
+	for module in django_backblaze_b2 tests sample_app; do \
+		poetry run mypy -p $$module && \
+		poetry run flake8 $$module; \
+	done
 	poetry run black --check .
 
 format:
@@ -78,7 +80,7 @@ EXPOSE 8000
 CMD python sample_app/manage.py makemigrations b2_file_app && \
 	python sample_app/manage.py migrate && \
 	python sample_app/manage.py createuser && \
-    python sample_app/manage.py runserver 0.0.0.0:8000 --insecure --noreload
+	python sample_app/manage.py runserver 0.0.0.0:8000 --insecure --noreload
 endef
 export DOCKERFILE
 

@@ -47,9 +47,9 @@ django = ">=3.0"
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
 pytest = "^5.2"
-mypy = "^0.782"
+mypy = { git="https://github.com/python/mypy.git" }
 black = "^19.10b0"
-django-stubs = {git = "https://github.com/typeddjango/django-stubs.git", rev = "6e5f5f2cdba053f5412247b62e3680221164ebcf"}
+django-stubs = "^1.7.0"
 flake8 = "^3.8.3"
 pytest-cov = "^2.10.1"
 pytest-django = "^3.9.0"
