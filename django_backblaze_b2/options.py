@@ -1,4 +1,9 @@
-from typing import Any, Dict, Literal, Optional, TypedDict, Union
+from typing import Any, Dict, Optional, Union
+
+try:
+    from typing import TypedDict
+except Exception:
+    from mypy_extensions import TypedDict
 
 
 class ProxiedBucketNames(TypedDict):
@@ -8,9 +13,9 @@ class ProxiedBucketNames(TypedDict):
 
 
 class BackblazeB2StorageOptions(TypedDict):
-    """Configuration options. Literals indicate defaults"""
+    """Configuration options."""
 
-    realm: Literal["production"]
+    realm: str  # default "production"
     application_key_id: str
     application_key: str
     bucket: str
