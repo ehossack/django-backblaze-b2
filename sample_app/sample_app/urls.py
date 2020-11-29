@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from b2_file_app.views import index
+from sample_app.b2_file_app.views import index
 
 urlpatterns = [
     path("admin/doc/", include("django.contrib.admindocs.urls")),

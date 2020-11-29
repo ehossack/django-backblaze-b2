@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 from django.forms import ModelForm
 from django.http import HttpRequest, HttpResponse
@@ -19,7 +19,7 @@ def index(request: HttpRequest) -> HttpResponse:
         form = FileForm(data=request.POST, files=request.FILES)
         if form.is_valid():
             form.save()
-            modelInstance = form.instance
+            modelInstance = cast(ModelWithFiles, form.instance)
             modelInstance.refresh_from_db()
             form = FileForm(instance=modelInstance)
     else:

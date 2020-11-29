@@ -112,9 +112,18 @@ Contributions welcome!
 ### Requires
 
 * python
+* pyenv - align local version
 * GNU Make
-* (optional) pyenv - align local version
 * (optional) docker - run sample app
+
+#### Version compatibility reminder
+
+| Ver  | Status   |  EOL       |
+| ---- | -------- | ---------- |
+| 3.9  | bugfix   | 2025-10    |
+| 3.8  | bugfix   | 2024-10    |
+| 3.7  | security | 2023-06-27 |
+| 3.6  | security | 2021-12-23 |
 
 ### Running
 

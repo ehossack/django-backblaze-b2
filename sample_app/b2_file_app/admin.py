@@ -1,6 +1,5 @@
 from django.contrib import admin
-
-from b2_file_app.models import ModelWithFiles
+from sample_app.b2_file_app.models import ModelWithFiles
 
 
 @admin.register(ModelWithFiles)
