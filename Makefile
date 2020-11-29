@@ -3,7 +3,9 @@
 		run-django run-test-proj \
 		cleanup-docker run-sample-proj
 
+pyversions=$(shell cat .python-version)
 setup:
+	for version in ${pyversions}; do pyenv install -s $$version; done
 	pip install -r requirements.txt
 	poetry install
 
@@ -39,12 +41,15 @@ test-coverage: tests/test_project/files/migrations/0001_initial.py
 		--cov-report xml:tests/cov.xml \
 		tests
 
-test-ci: tests/test_project/files/migrations/0001_initial.py
+test-output-coverage: tests/test_project/files/migrations/0001_initial.py
 	poetry run pytest \
 		--junitxml=tests/test-results/junit.xml \
 		--cov=django_backblaze_b2 \
 		--cov-report html:tests/htmlcov \
 		tests
+
+test-ci:
+	poetry run python -m tox
 
 clean-django-files:
 	@rm -rf \
@@ -65,7 +70,7 @@ cleanup-docker:
 	fi
 
 define DOCKERFILE
-FROM python:3.8
+FROM python:3.9
 COPY requirements.txt poetry.* pyproject.toml ./
 RUN pip install -r requirements.txt
 RUN poetry config virtualenvs.create false && poetry install
