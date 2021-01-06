@@ -58,7 +58,7 @@ include = ["py.typed"]
 
 [tool.poetry.dependencies]
 python = "^3.6"
-b2sdk = "^1.1.4"
+b2sdk = { git="https://github.com/Backblaze/b2-sdk-python", rev = "0cd994c" }
 django = ">=3.0"
 
 [tool.poetry.dev-dependencies]
