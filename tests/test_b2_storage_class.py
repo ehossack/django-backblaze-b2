@@ -2,6 +2,7 @@ from typing import Any, Dict
 from unittest import mock
 
 import pytest
+from b2sdk.account_info.exception import CorruptAccountInfo
 from b2sdk.exception import FileNotPresent
 from b2sdk.file_version import FileVersionInfoFactory
 from b2sdk.v1 import B2Api, Bucket
@@ -25,7 +26,7 @@ def test_requiresConfigurationForAuth(settings):
         with pytest.raises(ImproperlyConfigured) as error:
             BackblazeB2Storage()
 
-        assert ("At minimium BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'") in str(
+        assert ("At minimum BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'") in str(
             error
         )
 
@@ -175,6 +176,19 @@ def test_existsFileDoesNotExist(settings):
 
         assert not doesFileExist
         assert mockedBucket.get_file_info_by_name.call_count == 1
+
+
+def test_canUseSqliteAccountInfo(settings, tmpdir):
+    tempFile = tmpdir.mkdir("sub").join("database.sqlite3")
+    tempFile.write("some-invalid-context")
+    with mock.patch.object(
+        settings, "BACKBLAZE_CONFIG", _settingsDict({"sqliteDatabase": str(tempFile)})
+    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name"):
+
+        with pytest.raises(CorruptAccountInfo) as error:
+            BackblazeB2Storage(opts={})
+
+        assert str(tempFile) in str(error.value)
 
 
 def _settingsDict(config: Dict[str, Any]) -> Dict[str, Any]:

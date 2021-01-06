@@ -2,7 +2,7 @@ from datetime import datetime
 from logging import getLogger
 from typing import IO, Any, Dict, List, Optional, Tuple
 
-from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo
+from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo, SqliteAccountInfo
 from b2sdk.v1.exception import FileNotPresent, NonExistentBucket
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
@@ -30,6 +30,9 @@ class BackblazeB2Storage(Storage):
         )
         self._allowFileOverwrites = opts["allowFileOverwrites"]
 
+        if opts.get("sqliteDatabase"):
+            self._sqliteDbPath = opts["sqliteDatabase"]
+
         logger.info(f"{self.__class__.__name__} instantiated to use bucket {self._bucketName}")
         if opts["authorizeOnInit"]:
             logger.debug(f"{self.__class__.__name__} authorizing")
@@ -47,7 +50,7 @@ class BackblazeB2Storage(Storage):
             raise ImproperlyConfigured("add BACKBLAZE_CONFIG dict to django settings")
         if "application_key_id" not in settings.BACKBLAZE_CONFIG or "application_key" not in settings.BACKBLAZE_CONFIG:
             raise ImproperlyConfigured(
-                "At minimium BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'"
+                "At minimum BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'"
                 f"\nfound: {settings.BACKBLAZE_CONFIG}"
             )
         opts = getDefaultB2StorageOptions()
@@ -57,7 +60,11 @@ class BackblazeB2Storage(Storage):
     @property
     def b2Api(self) -> B2Api:
         if not hasattr(self, "_b2Api"):
-            self._accountInfo = InMemoryAccountInfo()
+            self._accountInfo = (
+                SqliteAccountInfo(file_name=self._sqliteDbPath)
+                if hasattr(self, "_sqliteDbPath")
+                else InMemoryAccountInfo()
+            )
             self._b2Api = B2Api(self._accountInfo)
             self._b2Api.authorize_account(**self._authInfo)
         return self._b2Api

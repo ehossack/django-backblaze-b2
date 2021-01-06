@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, cast
 
 try:
     from typing import TypedDict
@@ -26,18 +26,20 @@ class BackblazeB2StorageOptions(TypedDict):
     nonExistentBucketDetails: Optional[Dict[str, Union[str, Dict[str, Any]]]]
     defaultFileInfo: Dict[str, Any]
     specificBucketNames: ProxiedBucketNames
+    sqliteDatabase: str  # default unset
 
 
 def getDefaultB2StorageOptions() -> BackblazeB2StorageOptions:
-    return {
-        "realm": "production",
-        "application_key_id": "---",
-        "application_key": "---",
-        "bucket": "django",
-        "authorizeOnInit": True,
-        "validateOnInit": True,
-        "allowFileOverwrites": False,
-        "nonExistentBucketDetails": None,
-        "defaultFileInfo": {},
-        "specificBucketNames": {"public": None, "loggedIn": None, "staff": None},
-    }
+    return cast(
+        BackblazeB2StorageOptions,
+        {
+            "realm": "production",
+            "bucket": "django",
+            "authorizeOnInit": True,
+            "validateOnInit": True,
+            "allowFileOverwrites": False,
+            "nonExistentBucketDetails": None,
+            "defaultFileInfo": {},
+            "specificBucketNames": {"public": None, "loggedIn": None, "staff": None},
+        },
+    )
