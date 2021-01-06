@@ -10,7 +10,6 @@ from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
 
 from django_backblaze_b2.b2_file import B2File
-from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
 from django_backblaze_b2.options import BackblazeB2StorageOptions, getDefaultB2StorageOptions
 
 logger = getLogger("django-backblaze-b2")
@@ -101,17 +100,22 @@ class BackblazeB2Storage(Storage):
 
     def delete(self, name: str) -> None:
         try:
-            fileId = FileMetaShim(self.b2Api, self.bucket, name).id
-            logger.debug(f"Deleting file {name} id=({fileId})")
-            self.b2Api.delete_file_version(file_id=fileId, file_name=name)
+            fileInfo = self.bucket.get_file_info_by_name(name)
+            logger.debug(f"Deleting file {name} id=({fileInfo.id_})")
+            self.b2Api.delete_file_version(file_id=fileInfo.id_, file_name=name)
         except FileNotPresent:
             logger.debug("Not found")
 
     def exists(self, name: str) -> bool:
-        return FileMetaShim(self.b2Api, self.bucket, name).exists
+        try:
+            self.bucket.get_file_info_by_name(name)
+            return True
+        except FileNotPresent:
+            return False
 
     def size(self, name: str) -> int:
-        return FileMetaShim(self.b2Api, self.bucket, name).contentLength
+        fileInfo = self.bucket.get_file_info_by_name(name)
+        return fileInfo.size if fileInfo.size is not None else 0
 
     def url(self, name: Optional[str]) -> str:
         if not name:
