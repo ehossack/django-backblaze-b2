@@ -2,13 +2,13 @@ from typing import Any, Dict
 from unittest import mock
 
 import pytest
-from b2sdk.exception import B2Error, ServiceError
-from b2sdk.v1 import B2Api
+from b2sdk.account_info.exception import CorruptAccountInfo
+from b2sdk.exception import FileNotPresent
+from b2sdk.file_version import FileVersionInfoFactory
+from b2sdk.v1 import B2Api, Bucket
 from b2sdk.v1.exception import NonExistentBucket
 from django.core.exceptions import ImproperlyConfigured
 from django_backblaze_b2 import BackblazeB2Storage
-from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
-from requests import HTTPError, Response
 
 
 def test_requiresConfiguration():
@@ -26,7 +26,7 @@ def test_requiresConfigurationForAuth(settings):
         with pytest.raises(ImproperlyConfigured) as error:
             BackblazeB2Storage()
 
-        assert ("At minimium BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'") in str(
+        assert ("At minimum BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'") in str(
             error
         )
 
@@ -130,9 +130,15 @@ def test_urlRequiresName(settings):
 
 
 def test_get_available_nameWithOverwrites(settings):
+    mockedBucket = mock.Mock(spec=Bucket)
+    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+        {"id_": 1, "file_name": "some_name.txt"}
+    )
+
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name"), mock.patch.object(FileMetaShim, "exists", return_value=True):
+    ), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+        api.return_value = mockedBucket
         storage = BackblazeB2Storage(opts={"allowFileOverwrites": True})
 
         availableName = storage.get_available_name("some_name.txt", max_length=None)
@@ -157,62 +163,32 @@ def test_notImplementedMethods(settings):
 
 
 def test_existsFileDoesNotExist(settings):
-    fileMetaResponse = mock.Mock(spec=Response)
-    fileMetaResponse.status_code = 404
+    mockedBucket = mock.Mock(spec=Bucket)
+    mockedBucket.get_file_info_by_name.side_effect = FileNotPresent()
 
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name"), mock.patch.object(
-        FileMetaShim, "_get_head_response", side_effect=HTTPError(response=fileMetaResponse)
-    ) as patchedHead:
+    ), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+        api.return_value = mockedBucket
         storage = BackblazeB2Storage(opts={})
 
         doesFileExist = storage.exists("some/file.txt")
 
         assert not doesFileExist
-        assert patchedHead.call_count == 1
+        assert mockedBucket.get_file_info_by_name.call_count == 1
 
 
-def test_existsServerErrorInterpretationAndRetry(settings):
-    fileMetaResponse = mock.Mock(spec=Response)
-    fileMetaResponse.status_code = 500
-    fileMetaResponse.headers = {}
+def test_canUseSqliteAccountInfo(settings, tmpdir):
+    tempFile = tmpdir.mkdir("sub").join("database.sqlite3")
+    tempFile.write("some-invalid-context")
+    with mock.patch.object(
+        settings, "BACKBLAZE_CONFIG", _settingsDict({"sqliteDatabase": str(tempFile)})
+    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name"):
 
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name"), mock.patch.object(
-        B2Api, "authorize_automatically", return_value=True
-    ), mock.patch.object(
-        FileMetaShim, "_get_head_response", side_effect=HTTPError(response=fileMetaResponse)
-    ) as patchedHead:
-        storage = BackblazeB2Storage(opts={})
+        with pytest.raises(CorruptAccountInfo) as error:
+            BackblazeB2Storage(opts={})
 
-        with pytest.raises(B2Error) as raised:
-            storage.exists("some/file.txt")
-
-        assert isinstance(raised.value, ServiceError)
-        assert patchedHead.call_count == 4
-
-
-def test_existsServerErrorDoesNotRetryIfCantAuth(settings):
-    fileMetaResponse = mock.Mock(spec=Response)
-    fileMetaResponse.status_code = 500
-    fileMetaResponse.headers = {}
-
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name"), mock.patch.object(
-        B2Api, "authorize_automatically", return_value=False
-    ), mock.patch.object(
-        FileMetaShim, "_get_head_response", side_effect=HTTPError(response=fileMetaResponse)
-    ) as patchedHead:
-        storage = BackblazeB2Storage(opts={})
-
-        with pytest.raises(B2Error) as raised:
-            storage.exists("some/file.txt")
-
-        assert isinstance(raised.value, ServiceError)
-        assert patchedHead.call_count == 1
+        assert str(tempFile) in str(error.value)
 
 
 def _settingsDict(config: Dict[str, Any]) -> Dict[str, Any]:

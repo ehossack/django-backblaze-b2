@@ -2,7 +2,7 @@ from datetime import datetime
 from logging import getLogger
 from typing import IO, Any, Dict, List, Optional, Tuple
 
-from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo
+from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo, SqliteAccountInfo
 from b2sdk.v1.exception import FileNotPresent, NonExistentBucket
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
@@ -10,7 +10,6 @@ from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
 
 from django_backblaze_b2.b2_file import B2File
-from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
 from django_backblaze_b2.options import BackblazeB2StorageOptions, getDefaultB2StorageOptions
 
 logger = getLogger("django-backblaze-b2")
@@ -31,6 +30,9 @@ class BackblazeB2Storage(Storage):
         )
         self._allowFileOverwrites = opts["allowFileOverwrites"]
 
+        if opts.get("sqliteDatabase"):
+            self._sqliteDbPath = opts["sqliteDatabase"]
+
         logger.info(f"{self.__class__.__name__} instantiated to use bucket {self._bucketName}")
         if opts["authorizeOnInit"]:
             logger.debug(f"{self.__class__.__name__} authorizing")
@@ -48,7 +50,7 @@ class BackblazeB2Storage(Storage):
             raise ImproperlyConfigured("add BACKBLAZE_CONFIG dict to django settings")
         if "application_key_id" not in settings.BACKBLAZE_CONFIG or "application_key" not in settings.BACKBLAZE_CONFIG:
             raise ImproperlyConfigured(
-                "At minimium BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'"
+                "At minimum BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'"
                 f"\nfound: {settings.BACKBLAZE_CONFIG}"
             )
         opts = getDefaultB2StorageOptions()
@@ -58,7 +60,11 @@ class BackblazeB2Storage(Storage):
     @property
     def b2Api(self) -> B2Api:
         if not hasattr(self, "_b2Api"):
-            self._accountInfo = InMemoryAccountInfo()
+            self._accountInfo = (
+                SqliteAccountInfo(file_name=self._sqliteDbPath)
+                if hasattr(self, "_sqliteDbPath")
+                else InMemoryAccountInfo()
+            )
             self._b2Api = B2Api(self._accountInfo)
             self._b2Api.authorize_account(**self._authInfo)
         return self._b2Api
@@ -101,17 +107,22 @@ class BackblazeB2Storage(Storage):
 
     def delete(self, name: str) -> None:
         try:
-            fileId = FileMetaShim(self.b2Api, self.bucket, name).id
-            logger.debug(f"Deleting file {name} id=({fileId})")
-            self.b2Api.delete_file_version(file_id=fileId, file_name=name)
+            fileInfo = self.bucket.get_file_info_by_name(name)
+            logger.debug(f"Deleting file {name} id=({fileInfo.id_})")
+            self.b2Api.delete_file_version(file_id=fileInfo.id_, file_name=name)
         except FileNotPresent:
             logger.debug("Not found")
 
     def exists(self, name: str) -> bool:
-        return FileMetaShim(self.b2Api, self.bucket, name).exists
+        try:
+            self.bucket.get_file_info_by_name(name)
+            return True
+        except FileNotPresent:
+            return False
 
     def size(self, name: str) -> int:
-        return FileMetaShim(self.b2Api, self.bucket, name).contentLength
+        fileInfo = self.bucket.get_file_info_by_name(name)
+        return fileInfo.size if fileInfo.size is not None else 0
 
     def url(self, name: Optional[str]) -> str:
         if not name:

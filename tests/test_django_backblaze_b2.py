@@ -4,16 +4,16 @@ from typing import Callable, Optional
 from unittest import mock
 
 import pytest
+from b2sdk.exception import FileNotPresent
+from b2sdk.file_version import FileVersionInfoFactory
 from b2sdk.v1 import B2Api, Bucket
 from django.contrib.auth.models import User
 from django.core.files import File
 from django.http import FileResponse
 from django.test import Client
-
 from django_backblaze_b2 import __version__
-from django_backblaze_b2.b2_filemeta_shim import FileMetaShim
 
-bucket = mock.Mock(spec_set=Bucket)
+bucket = mock.Mock(spec_set=Bucket, name=f"Mock Bucket for {__name__}")
 
 
 def test_version():
@@ -35,13 +35,14 @@ def test_raisesNoExceptionWhenLoadingModel():
 
 @pytest.mark.django_db
 def test_uploadsBytesToBucket(tempFile):
-
-    with _mockedBucket(), _fileMeta(size=tempFile.size), mock.patch.object(
+    _mockFileDoesNotExist(tempFile)
+    with _mockedBucket(), mock.patch.object(
         B2Api, "get_download_url_for_file_name", return_value="http://randonneurs.bc.ca"
     ) as getDownloadUrl:
         from tests.test_project.files.models import Files
 
         filesObject = Files.objects.create(b2StorageFile=tempFile)
+        _mockFileExists(tempFile)
 
         assert filesObject.b2StorageFile.size == tempFile.size
         assert filesObject.b2StorageFile.url == "http://randonneurs.bc.ca"
@@ -54,13 +55,13 @@ def test_uploadsBytesToBucket(tempFile):
 
 @pytest.mark.django_db
 def test_deletesFromBucket(tempFile):
-
-    with _mockedBucket(), _fileMeta(size=tempFile.size, id="someId"), mock.patch.object(
-        B2Api, "delete_file_version"
-    ) as deletion:
+    _mockFileDoesNotExist(tempFile)
+    with _mockedBucket(), mock.patch.object(B2Api, "delete_file_version") as deletion:
         from tests.test_project.files.models import Files
 
         filesObject = Files.objects.create(b2StorageFile=tempFile)
+        _mockFileExists(tempFile)
+
         filesObject.b2StorageFile.delete()
 
         deletion.assert_called_with(file_id="someId", file_name=f"uploads/{tempFile.name}")
@@ -70,7 +71,7 @@ def test_deletesFromBucket(tempFile):
 def test_worksWithFieldFileWriteOperation(tempFile):
     _mockFileDownload(tempFile)
 
-    with _fileMeta(size=tempFile.size):
+    with _fileInfo(size=tempFile.size):
 
         fieldFile = _getFileFromNewFilesModelObject(tempFile)
         with fieldFile.open("w") as f:
@@ -83,7 +84,7 @@ def test_worksWithFieldFileWriteOperation(tempFile):
 
 @pytest.mark.django_db
 def test_cannotWriteToFileWhenOpenedInReadMode(tempFile):
-    with _fileMeta(size=tempFile.size):
+    with _fileInfo(size=tempFile.size):
         fieldFile = _getFileFromNewFilesModelObject(tempFile)
 
         with pytest.raises(AttributeError) as error:
@@ -97,7 +98,7 @@ def test_cannotWriteToFileWhenOpenedInReadMode(tempFile):
 def test_canReadFileContents(tempFile):
     _mockFileDownload(tempFile)
 
-    with _fileMeta(size=tempFile.size):
+    with _fileInfo(size=tempFile.size):
         fieldFile = _getFileFromNewFilesModelObject(tempFile)
 
         fileContents = fieldFile.file.read()
@@ -109,11 +110,13 @@ def test_canReadFileContents(tempFile):
 @pytest.mark.django_db
 def test_storageCanOpenFile(tempFile):
     _mockFileDownload(tempFile)
+    _mockFileDoesNotExist(tempFile)
 
-    with _fileMeta(size=tempFile.size):
+    with _fileInfo(size=tempFile.size):
         from tests.test_project.files.models import Files
 
         filesObject = Files.objects.create(b2StorageFile=tempFile)
+        _mockFileExists(tempFile)
         storage = Files._meta.get_field("b2StorageFile").storage
         b2File = storage.open(filesObject.b2StorageFile.name, "r")
 
@@ -122,11 +125,12 @@ def test_storageCanOpenFile(tempFile):
 
 @pytest.mark.django_db
 def test_generatesPublicFileUrl(tempFile):
-
-    with _mockedBucket(), _fileMeta(size=tempFile.size):
+    _mockFileDoesNotExist(tempFile)
+    with _mockedBucket():
         from tests.test_project.files.models import Files
 
         filesObject = Files.objects.create(publicFile=tempFile)
+        _mockFileExists(tempFile)
 
         assert filesObject.publicFile.size == tempFile.size
         assert filesObject.publicFile.url == f"/b2/uploads/{tempFile.name}"
@@ -148,12 +152,12 @@ def test_generatesPublicFileUrlAsRawB2Url():
 @pytest.mark.django_db
 def test_canDownloadUsingPublicStorage(tempFile, client: Client):
     _mockFileDownload(tempFile)
-    fileExists = False
-    with _mockedBucket(), _fileMeta(size=tempFile.size, doesFileExist=lambda: fileExists):
+    _mockFileDoesNotExist(tempFile)
+    with _mockedBucket():
         from tests.test_project.files.models import Files
 
         filesObject = Files.objects.create(publicFile=tempFile)
-        fileExists = True
+        _mockFileExists(tempFile)
         response = client.get(filesObject.publicFile.url)
 
         assert isinstance(response, FileResponse)
@@ -163,7 +167,8 @@ def test_canDownloadUsingPublicStorage(tempFile, client: Client):
 @pytest.mark.django_db
 def test_requiresAuthForLoggedInStorage(tempFile, client: Client):
     _mockFileDownload(tempFile)
-    with _mockedBucket(), _fileMeta(size=tempFile.size):
+    _mockFileDoesNotExist(tempFile)
+    with _mockedBucket():
         from tests.test_project.files.models import Files
 
         filesObject = Files.objects.create(loggedInFile=tempFile)
@@ -176,7 +181,7 @@ def test_requiresAuthForLoggedInStorage(tempFile, client: Client):
 @pytest.mark.django_db
 def test_requiresAuthForStaffStorage(tempFile, client: Client):
     _mockFileDownload(tempFile)
-    with _mockedBucket(), _fileMeta(size=tempFile.size):
+    with _mockedBucket():
         from tests.test_project.files.models import Files
 
         filesObject = Files.objects.create(staffFile=tempFile)
@@ -189,7 +194,7 @@ def test_requiresAuthForStaffStorage(tempFile, client: Client):
 @pytest.mark.django_db
 def test_requiresAuthForStaffStorageWhenLoggedIn(tempFile, client: Client):
     _mockFileDownload(tempFile)
-    with _mockedBucket(), _fileMeta(size=tempFile.size):
+    with _mockedBucket():
         from tests.test_project.files.models import Files
 
         user = User.objects.create_user(username="user", password="user", is_staff=False)
@@ -204,13 +209,14 @@ def test_requiresAuthForStaffStorageWhenLoggedIn(tempFile, client: Client):
 @pytest.mark.django_db
 def test_canDownloadUsingLoggedInStorage(tempFile, client: Client):
     _mockFileDownload(tempFile)
-    fileExists = False
-    with _mockedBucket(), _fileMeta(size=tempFile.size, doesFileExist=lambda: fileExists):
+    _mockFileDoesNotExist(tempFile)
+    with _mockedBucket():
         from tests.test_project.files.models import Files
 
         user = User.objects.create_user(username="user", password="user", is_staff=False)
         filesObject = Files.objects.create(loggedInFile=tempFile)
-        fileExists = True
+
+        _mockFileExists(tempFile)
         client.force_login(user)
         response = client.get(filesObject.loggedInFile.url)
 
@@ -221,13 +227,14 @@ def test_canDownloadUsingLoggedInStorage(tempFile, client: Client):
 @pytest.mark.django_db
 def test_canDownloadUsingStaffStorage(tempFile, client: Client):
     _mockFileDownload(tempFile)
-    fileExists = False
-    with _mockedBucket(), _fileMeta(size=tempFile.size, doesFileExist=lambda: fileExists):
+    _mockFileDoesNotExist(tempFile)
+    with _mockedBucket():
         from tests.test_project.files.models import Files
 
         staffUser = User.objects.create_user(username="user", password="user", is_staff=True)
         filesObject = Files.objects.create(staffFile=tempFile)
-        fileExists = True
+
+        _mockFileExists(tempFile)
         client.force_login(staffUser)
         response = client.get(filesObject.staffFile.url)
 
@@ -239,7 +246,8 @@ def test_canDownloadUsingStaffStorage(tempFile, client: Client):
 def test_appropriatelyHandlesNonExtantFile(tempFile, client: Client, caplog):
     caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
     _mockFileDownload(tempFile)
-    with _mockedBucket(), _fileMeta(size=tempFile.size, doesFileExist=lambda: False):
+    _mockFileDoesNotExist(tempFile)
+    with _mockedBucket():
         from tests.test_project.files.models import Files
 
         filesObject = Files.objects.create(publicFile=tempFile)
@@ -269,23 +277,21 @@ def _mockedBucket():
 
 
 @contextmanager
-def _fileMeta(size: Optional[int] = None, id: str = "someId", doesFileExist: Callable[[], bool] = lambda: False):
-    def getSize():
-        if size is not None:
-            return size
-        raise Exception("need size")
+def _fileInfo(size: Optional[int] = None, id: str = "someId", doesFileExist: Callable[[], bool] = None):
+    def existOrThrow():
+        if doesFileExist():
+            return FileVersionInfoFactory.from_response_headers({"id": id, "content-length": size})
+        raise FileNotPresent()
 
-    with mock.patch.object(
-        FileMetaShim,
-        "exists",
-        new_callable=mock.PropertyMock,
-        side_effect=doesFileExist,  # default return false,
-        # because django will try to generate a new name if true
-        # https://github.com/django/django/blob/3.1.1/django/core/files/storage.py#L82
-    ), mock.patch.object(FileMetaShim, "contentLength", new_callable=getSize), mock.patch.object(
-        FileMetaShim, "id", new_callable=mock.PropertyMock, return_value=id,
-    ):
-        yield
+    if doesFileExist is None:
+        with mock.patch.object(bucket, "get_file_info_by_name", side_effect=FileNotPresent):
+            yield
+        # bucket.get_file_info_by_name.side_effect = FileNotPresent
+    else:
+        with mock.patch.object(bucket, "get_file_info_by_name", new_callable=existOrThrow):
+            yield
+        # bucket.get_file_info_by_name.return_value = existOrThrow
+    # yield
 
 
 def _getFileFromNewFilesModelObject(tempFile: File) -> File:
@@ -306,3 +312,14 @@ def _mockFileDownload(tempFile: File) -> None:
             return None
 
     bucket.download_file_by_name.side_effect = downloadByName
+
+
+def _mockFileDoesNotExist(tempFile: File) -> None:
+    bucket.get_file_info_by_name.side_effect = FileNotPresent
+
+
+def _mockFileExists(tempFile: File, b2FileId: str = "someId") -> None:
+    bucket.get_file_info_by_name.side_effect = None
+    bucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+        {"x-bz-file-id": b2FileId, "content-length": tempFile.size}
+    )
