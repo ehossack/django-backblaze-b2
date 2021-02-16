@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict
 from unittest import mock
 
@@ -178,17 +179,19 @@ def test_existsFileDoesNotExist(settings):
         assert mockedBucket.get_file_info_by_name.call_count == 1
 
 
-def test_canUseSqliteAccountInfo(settings, tmpdir):
+def test_canUseSqliteAccountInfo(settings, tmpdir, caplog):
+    caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
     tempFile = tmpdir.mkdir("sub").join("database.sqlite3")
     tempFile.write("some-invalid-context")
     with mock.patch.object(
-        settings, "BACKBLAZE_CONFIG", _settingsDict({"sqliteDatabase": str(tempFile)})
+        settings, "BACKBLAZE_CONFIG", _settingsDict({"accountInfo": {"type": "sqlite", "databasePath": str(tempFile)}})
     ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name"):
 
         with pytest.raises(CorruptAccountInfo) as error:
             BackblazeB2Storage(opts={})
 
         assert str(tempFile) in str(error.value)
+        assert ("django-backblaze-b2", 10, "BackblazeB2Storage will use SqliteAccountInfo") in caplog.record_tuples
 
 
 def _settingsDict(config: Dict[str, Any]) -> Dict[str, Any]:
