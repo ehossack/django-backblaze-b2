@@ -30,8 +30,20 @@ class BackblazeB2Storage(Storage):
         )
         self._allowFileOverwrites = opts["allowFileOverwrites"]
 
-        if opts.get("sqliteDatabase"):
-            self._sqliteDbPath = opts["sqliteDatabase"]
+        if (
+            not isinstance(opts["accountInfo"], dict)
+            or "type" not in opts["accountInfo"]
+            or opts["accountInfo"]["type"] not in ["memory", "sqlite"]
+        ):
+            raise ImproperlyConfigured(
+                (f"accountInfo property must be a dict with type found in options.py, was {opts['accountInfo']}")
+            )
+        if opts["accountInfo"]["type"] == "memory":
+            logger.debug(f"{self.__class__.__name__} will use {InMemoryAccountInfo.__name__}")
+            self._getAccountInfo = lambda: InMemoryAccountInfo()
+        elif opts["accountInfo"]["type"] == "sqlite":
+            logger.debug(f"{self.__class__.__name__} will use {SqliteAccountInfo.__name__}")
+            self._getAccountInfo = lambda: SqliteAccountInfo(file_name=opts["accountInfo"]["databasePath"])
 
         logger.info(f"{self.__class__.__name__} instantiated to use bucket {self._bucketName}")
         if opts["authorizeOnInit"]:
@@ -60,11 +72,7 @@ class BackblazeB2Storage(Storage):
     @property
     def b2Api(self) -> B2Api:
         if not hasattr(self, "_b2Api"):
-            self._accountInfo = (
-                SqliteAccountInfo(file_name=self._sqliteDbPath)
-                if hasattr(self, "_sqliteDbPath")
-                else InMemoryAccountInfo()
-            )
+            self._accountInfo = self._getAccountInfo()
             self._b2Api = B2Api(self._accountInfo)
             self._b2Api.authorize_account(**self._authInfo)
         return self._b2Api
