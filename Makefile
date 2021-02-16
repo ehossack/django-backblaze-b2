@@ -5,9 +5,9 @@
 
 pyversions=$(shell cat .python-version)
 setup:
-	for version in ${pyversions}; do pyenv install -s $$version; done
+	pyenv install -s $(firstword ${pyversions})
 	pip install -r requirements.txt
-	poetry install
+	poetry install --remove-untracked
 
 cleanup: clean-django-files cleanup-docker
 	- poetry env remove python
@@ -48,8 +48,27 @@ test-output-coverage: tests/test_project/files/migrations/0001_initial.py
 		--cov-report html:tests/htmlcov \
 		tests
 
+deps_and_test = apt-get update && \
+				apt-get install -y build-essential && \
+					cd app && make in-docker-test
 test-ci:
-	poetry run python -m tox
+	@echo "Running tests and lint on python $(firstword ${pyversions})"
+	docker run --rm -v `pwd`:/app \
+		-it python:$(firstword ${pyversions})-slim \
+		/bin/sh -c "${deps_and_test} && make lint"
+	@echo "Running tests on python $(wordlist 2,99,${pyversions})"
+	for version in $(wordlist 2,99,${pyversions}); do \
+		docker run --rm \
+			-v `pwd`:/app \
+			-it python:$${version}-slim \
+			/bin/sh -c "${deps_and_test}"; \
+		done
+
+in-docker-test:
+	pip install -r requirements.txt
+	poetry config virtualenvs.create false
+	poetry install
+	make test-output-coverage
 
 clean-django-files:
 	@rm -rf \
