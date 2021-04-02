@@ -114,6 +114,11 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
+CACHES: Dict[str, Any] = {
+    "default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"},
+    "django-backblaze-b2": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+}
+
 BACKBLAZE_CONFIG: Dict[str, Any] = {
     "application_key_id": os.environ["BACKBLAZE_APPLICATION_KEY_ID"],
     "application_key": os.environ["BACKBLAZE_APPLICATION_KEY"],
