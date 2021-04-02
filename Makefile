@@ -20,7 +20,7 @@ cleanup: clean-django-files cleanup-docker
 lint: clean-django-files
 	for module in django_backblaze_b2 tests sample_app; do \
 		poetry run mypy -p $$module && \
-		poetry run flake8 $$module; \
+		poetry run flake8 $$module || exit 1; \
 	done
 	poetry run black --check .
 
