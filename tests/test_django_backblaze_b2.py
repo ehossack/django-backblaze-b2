@@ -287,12 +287,9 @@ def _fileInfo(size: Optional[int] = None, id: str = "someId", doesFileExist: Cal
     if doesFileExist is None:
         with mock.patch.object(bucket, "get_file_info_by_name", side_effect=FileNotPresent):
             yield
-        # bucket.get_file_info_by_name.side_effect = FileNotPresent
     else:
         with mock.patch.object(bucket, "get_file_info_by_name", new_callable=existOrThrow):
             yield
-        # bucket.get_file_info_by_name.return_value = existOrThrow
-    # yield
 
 
 def _getFileFromNewFilesModelObject(tempFile: File) -> File:

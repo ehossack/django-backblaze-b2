@@ -41,6 +41,17 @@ def test_explicitOptsTakePrecendenceOverDjangoConfig(settings):
         B2Api.get_bucket_by_name.assert_called_once_with("cool-bucket")
 
 
+def test_complainsWithUnrecognizedOptions(settings):
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
+        B2Api, "authorize_account"
+    ), mock.patch.object(B2Api, "get_bucket_by_name"):
+
+        with pytest.raises(ImproperlyConfigured) as error:
+            BackblazeB2Storage(opts={"unrecognized": "option"})
+
+        assert str(error.value) == "Unrecognized options: ['unrecognized']"
+
+
 def test_defaultsToAuthorizeOnInit(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"

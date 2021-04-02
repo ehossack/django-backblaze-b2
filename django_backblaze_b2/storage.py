@@ -1,6 +1,6 @@
 from datetime import datetime
 from logging import getLogger
-from typing import IO, Any, Dict, List, Optional, Tuple
+from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
 
 from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo, SqliteAccountInfo
 from b2sdk.v1.exception import FileNotPresent, NonExistentBucket
@@ -21,7 +21,9 @@ class BackblazeB2Storage(Storage):
 
     def __init__(self, **kwargs):
         opts = self._getDjangoSettingsOptions(kwargs.get("opts", {}))
-        opts.update(kwargs.get("opts", {}))
+        if "opts" in kwargs:
+            self._validateOptions(kwargs.get("opts"))
+        merge(opts, kwargs.get("opts", {}))
 
         self._bucketName = opts["bucket"]
         self._defaultFileInfo = opts["defaultFileInfo"]
@@ -55,6 +57,7 @@ class BackblazeB2Storage(Storage):
     def _getDjangoSettingsOptions(self, kwargOpts: Dict) -> BackblazeB2StorageOptions:
         """Setting terminology taken from:
         https://b2-sdk-python.readthedocs.io/en/master/glossary.html#term-application-key-ID
+        kwargOpts available for subclasses
         """
         from django.conf import settings
 
@@ -65,9 +68,15 @@ class BackblazeB2Storage(Storage):
                 "At minimum BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'"
                 f"\nfound: {settings.BACKBLAZE_CONFIG}"
             )
+        self._validateOptions(settings.BACKBLAZE_CONFIG)
         opts = getDefaultB2StorageOptions()
         opts.update(settings.BACKBLAZE_CONFIG)  # type: ignore
         return opts
+
+    def _validateOptions(self, options: Dict) -> None:
+        unrecognizedOptions = [k for k in options.keys() if k not in getDefaultB2StorageOptions().keys()]
+        if unrecognizedOptions:
+            raise ImproperlyConfigured(f"Unrecognized options: {unrecognizedOptions}")
 
     @property
     def b2Api(self) -> B2Api:
@@ -175,3 +184,22 @@ class BackblazeB2Storage(Storage):
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
         raise NotImplementedError("subclasses of Storage must provide a get_modified_time() method")
+
+
+def merge(target: Dict, source: Dict, path=None) -> Dict:
+    """merges b into a
+    https://stackoverflow.com/a/7205107/11076240
+    """
+    if path is None:
+        path = []
+    for key in source:
+        if key in target:
+            printablePath = ".".join(path + [str(key)])
+            if isinstance(target[key], dict) and isinstance(source[key], dict):
+                merge(target[key], source[key], path + [str(key)])
+            elif target[key] != source[key]:
+                logger.debug(f"Overriding setting {printablePath} with value {source[key]}")
+                target[key] = source[key]
+        else:
+            target[key] = source[key]
+    return target
