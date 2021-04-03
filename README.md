@@ -31,7 +31,11 @@ class MyModel(models.Model):
         storage=BackblazeB2Storage
     )
 ```
+### Caching
 
+Because the SDK will authorize/request with the b2 server to retrieve file info, the library caches these account information lookups.  
+By default, the `accountInfo` configuration uses a cache by the name of `django-backblaze-b2` which you must have in your `CACHES` section of your `settings.py`. This is the recommended caching implementation as it leverages the django framework and with that comes thread-safety. You can then use whichever cache implementation you want. It is not recommended to cache with the `default` django cache, as the `clear()` method may be called during the backblaze lifecycle.  
+If you do not wish to use this, you can use a sqlite database on disk for caching, or use a non-thread-safe in-memory implementation. This is only recommended for single-threaded deployments. (remember in most deployments a new thread serves each request).
 ### Public/Logged-In/Private storage
 
 1. Add `django_backblaze_b2` to your `INSTALLED_APPS`
@@ -43,7 +47,7 @@ class MyModel(models.Model):
     ]
 ```
 
-### Configurations 
+### Configurations
 
 You may want to use your own bucket name, or set further configuration such as lazy authorization/validation, or specifying file metadata.  
 Refer to [the options](./django_backblaze_b2/options.py) for all options.  
@@ -51,7 +55,6 @@ You can modify the settings dict, but additionally override any setting with the
 
 To specify different buckets to use for your public, logged-in, staff storage, you can set the 
 `specificBucketNames` attribute of the settings dict.
-
 ## Why
 
 There are several Django storage packages out there already which support B2, but none met my needs. These are:

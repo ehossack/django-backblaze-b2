@@ -257,7 +257,7 @@ def test_appropriatelyHandlesNonExtantFile(tempFile, client: Client, caplog):
         assert response.content.decode("utf-8") == f"Could not find file: uploads/{tempFile}"
         assert caplog.record_tuples == [
             ("django-backblaze-b2", 10, f"Saving uploads/{tempFile} to b2 bucket ({bucket.get_id()})"),
-            ("django-backblaze-b2", 10, "PublicStorage will use InMemoryAccountInfo"),
+            ("django-backblaze-b2", 10, "PublicStorage will use DjangoCacheAccountInfo"),
             ("django-backblaze-b2", 20, "PublicStorage instantiated to use bucket django"),
             ("django-backblaze-b2", 40, f"Debug log failed. Could not retrive b2 file url for uploads/{tempFile}"),
             ("django-backblaze-b2", 10, f"Connected to bucket {bucket.as_dict()}"),
@@ -287,12 +287,9 @@ def _fileInfo(size: Optional[int] = None, id: str = "someId", doesFileExist: Cal
     if doesFileExist is None:
         with mock.patch.object(bucket, "get_file_info_by_name", side_effect=FileNotPresent):
             yield
-        # bucket.get_file_info_by_name.side_effect = FileNotPresent
     else:
         with mock.patch.object(bucket, "get_file_info_by_name", new_callable=existOrThrow):
             yield
-        # bucket.get_file_info_by_name.return_value = existOrThrow
-    # yield
 
 
 def _getFileFromNewFilesModelObject(tempFile: File) -> File:

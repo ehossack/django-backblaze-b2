@@ -12,6 +12,11 @@ class ProxiedBucketNames(TypedDict):
     staff: Optional[str]
 
 
+class DjangoCacheAccountInfoConfig(TypedDict):
+    type: str  # only "django-cache" is valid
+    cache: str
+
+
 class InMemoryAccountInfoConfig(TypedDict):
     type: str  # only "memory" is valid
 
@@ -35,7 +40,7 @@ class BackblazeB2StorageOptions(TypedDict):
     nonExistentBucketDetails: Optional[Dict[str, Union[str, Dict[str, Any]]]]
     defaultFileInfo: Dict[str, Any]
     specificBucketNames: ProxiedBucketNames
-    accountInfo: Optional[Union[InMemoryAccountInfoConfig, SqliteAccountInfoConfig]]
+    accountInfo: Optional[Union[DjangoCacheAccountInfoConfig, InMemoryAccountInfoConfig, SqliteAccountInfoConfig]]
 
 
 def getDefaultB2StorageOptions() -> BackblazeB2StorageOptions:
@@ -50,5 +55,5 @@ def getDefaultB2StorageOptions() -> BackblazeB2StorageOptions:
         "nonExistentBucketDetails": None,
         "defaultFileInfo": {},
         "specificBucketNames": {"public": None, "loggedIn": None, "staff": None},
-        "accountInfo": {"type": "memory"},
+        "accountInfo": {"type": "django-cache", "cache": "django-backblaze-b2"},
     }

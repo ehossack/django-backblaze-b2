@@ -1,7 +1,9 @@
 from datetime import datetime
 from logging import getLogger
-from typing import IO, Any, Dict, List, Optional, Tuple
+from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
 
+from b2sdk.account_info.abstract import AbstractAccountInfo
+from b2sdk.cache import AuthInfoCache
 from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo, SqliteAccountInfo
 from b2sdk.v1.exception import FileNotPresent, NonExistentBucket
 from django.core.exceptions import ImproperlyConfigured
@@ -10,7 +12,13 @@ from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
 
 from django_backblaze_b2.b2_file import B2File
-from django_backblaze_b2.options import BackblazeB2StorageOptions, getDefaultB2StorageOptions
+from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
+from django_backblaze_b2.options import (
+    BackblazeB2StorageOptions,
+    DjangoCacheAccountInfoConfig,
+    SqliteAccountInfoConfig,
+    getDefaultB2StorageOptions,
+)
 
 logger = getLogger("django-backblaze-b2")
 
@@ -21,7 +29,9 @@ class BackblazeB2Storage(Storage):
 
     def __init__(self, **kwargs):
         opts = self._getDjangoSettingsOptions(kwargs.get("opts", {}))
-        opts.update(kwargs.get("opts", {}))
+        if "opts" in kwargs:
+            self._validateOptions(kwargs.get("opts"))
+        merge(opts, kwargs.get("opts", {}))
 
         self._bucketName = opts["bucket"]
         self._defaultFileInfo = opts["defaultFileInfo"]
@@ -30,20 +40,7 @@ class BackblazeB2Storage(Storage):
         )
         self._allowFileOverwrites = opts["allowFileOverwrites"]
 
-        if (
-            not isinstance(opts["accountInfo"], dict)
-            or "type" not in opts["accountInfo"]
-            or opts["accountInfo"]["type"] not in ["memory", "sqlite"]
-        ):
-            raise ImproperlyConfigured(
-                (f"accountInfo property must be a dict with type found in options.py, was {opts['accountInfo']}")
-            )
-        if opts["accountInfo"]["type"] == "memory":
-            logger.debug(f"{self.__class__.__name__} will use {InMemoryAccountInfo.__name__}")
-            self._getAccountInfo = lambda: InMemoryAccountInfo()
-        elif opts["accountInfo"]["type"] == "sqlite":
-            logger.debug(f"{self.__class__.__name__} will use {SqliteAccountInfo.__name__}")
-            self._getAccountInfo = lambda: SqliteAccountInfo(file_name=opts["accountInfo"]["databasePath"])
+        self._getAccountInfo = self._createAccountInfoCallable(opts)
 
         logger.info(f"{self.__class__.__name__} instantiated to use bucket {self._bucketName}")
         if opts["authorizeOnInit"]:
@@ -55,6 +52,7 @@ class BackblazeB2Storage(Storage):
     def _getDjangoSettingsOptions(self, kwargOpts: Dict) -> BackblazeB2StorageOptions:
         """Setting terminology taken from:
         https://b2-sdk-python.readthedocs.io/en/master/glossary.html#term-application-key-ID
+        kwargOpts available for subclasses
         """
         from django.conf import settings
 
@@ -65,15 +63,45 @@ class BackblazeB2Storage(Storage):
                 "At minimum BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'"
                 f"\nfound: {settings.BACKBLAZE_CONFIG}"
             )
+        self._validateOptions(settings.BACKBLAZE_CONFIG)
         opts = getDefaultB2StorageOptions()
         opts.update(settings.BACKBLAZE_CONFIG)  # type: ignore
         return opts
+
+    def _validateOptions(self, options: Dict) -> None:
+        unrecognizedOptions = [k for k in options.keys() if k not in getDefaultB2StorageOptions().keys()]
+        if unrecognizedOptions:
+            raise ImproperlyConfigured(f"Unrecognized options: {unrecognizedOptions}")
+
+    def _createAccountInfoCallable(self, opts: BackblazeB2StorageOptions) -> Callable[[], AbstractAccountInfo]:
+        if (
+            not isinstance(opts["accountInfo"], dict)
+            or "type" not in opts["accountInfo"]
+            or opts["accountInfo"]["type"] not in ["memory", "sqlite", "django-cache"]
+        ):
+            raise ImproperlyConfigured(
+                (f"accountInfo property must be a dict with type found in options.py, was {opts['accountInfo']}")
+            )
+        if opts["accountInfo"]["type"] == "django-cache":
+            logger.debug(f"{self.__class__.__name__} will use {DjangoCacheAccountInfo.__name__}")
+            return lambda: DjangoCacheAccountInfo(
+                cacheName=cast(DjangoCacheAccountInfoConfig, opts["accountInfo"]).get("cache", "django-backblaze-b2")
+            )
+        elif opts["accountInfo"]["type"] == "memory":
+            logger.debug(f"{self.__class__.__name__} will use {InMemoryAccountInfo.__name__}")
+            return lambda: InMemoryAccountInfo()
+        elif opts["accountInfo"]["type"] == "sqlite":
+            logger.debug(f"{self.__class__.__name__} will use {SqliteAccountInfo.__name__}")
+            return lambda: SqliteAccountInfo(
+                file_name=cast(SqliteAccountInfoConfig, opts["accountInfo"])["databasePath"]
+            )
+        raise ImproperlyConfigured()
 
     @property
     def b2Api(self) -> B2Api:
         if not hasattr(self, "_b2Api"):
             self._accountInfo = self._getAccountInfo()
-            self._b2Api = B2Api(self._accountInfo)
+            self._b2Api = B2Api(account_info=self._accountInfo, cache=AuthInfoCache(self._accountInfo))
             self._b2Api.authorize_account(**self._authInfo)
         return self._b2Api
 
@@ -175,3 +203,22 @@ class BackblazeB2Storage(Storage):
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
         raise NotImplementedError("subclasses of Storage must provide a get_modified_time() method")
+
+
+def merge(target: Dict, source: Dict, path=None) -> Dict:
+    """merges b into a
+    https://stackoverflow.com/a/7205107/11076240
+    """
+    if path is None:
+        path = []
+    for key in source:
+        if key in target:
+            printablePath = ".".join(path + [str(key)])
+            if isinstance(target[key], dict) and isinstance(source[key], dict):
+                merge(target[key], source[key], path + [str(key)])
+            elif target[key] != source[key]:
+                logger.debug(f"Overriding setting {printablePath} with value {source[key]}")
+                target[key] = source[key]
+        else:
+            target[key] = source[key]
+    return target

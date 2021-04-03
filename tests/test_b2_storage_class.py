@@ -10,6 +10,7 @@ from b2sdk.v1 import B2Api, Bucket
 from b2sdk.v1.exception import NonExistentBucket
 from django.core.exceptions import ImproperlyConfigured
 from django_backblaze_b2 import BackblazeB2Storage
+from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
 
 
 def test_requiresConfiguration():
@@ -39,6 +40,17 @@ def test_explicitOptsTakePrecendenceOverDjangoConfig(settings):
         BackblazeB2Storage(opts={"bucket": "cool-bucket"})
 
         B2Api.get_bucket_by_name.assert_called_once_with("cool-bucket")
+
+
+def test_complainsWithUnrecognizedOptions(settings):
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
+        B2Api, "authorize_account"
+    ), mock.patch.object(B2Api, "get_bucket_by_name"):
+
+        with pytest.raises(ImproperlyConfigured) as error:
+            BackblazeB2Storage(opts={"unrecognized": "option"})
+
+        assert str(error.value) == "Unrecognized options: ['unrecognized']"
 
 
 def test_defaultsToAuthorizeOnInit(settings):
@@ -98,6 +110,34 @@ def test_lazyAuthorization(settings):
         B2Api.authorize_account.assert_called_once_with(
             realm="production", application_key_id="---", application_key="---"
         )
+
+
+def test_cachedAccountInfo(settings):
+    cacheName = "test-cache"
+    bucket = mock.MagicMock()
+    bucket.name = "django"
+    bucket.id_ = "django-bucket-id"
+    cacheAccountInfo = DjangoCacheAccountInfo(cacheName)
+    cacheAccountInfo.set_auth_data(
+        "account-id",
+        "auth-token",
+        "api-url",
+        "download-url",
+        "minimum-part-size",
+        "application-key",
+        "realm",
+        dict(bucketId=None, bucketName=None, capabilities=["readFiles"], namePrefix=None,),
+        "application-key-id",
+    )
+    cacheAccountInfo.save_bucket(bucket)
+
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
+        B2Api, "authorize_account"
+    ), mock.patch.object(B2Api, "list_buckets"):
+
+        BackblazeB2Storage(opts={"accountInfo": {"type": "django-cache", "cache": cacheName}})
+
+        B2Api.list_buckets.assert_not_called()
 
 
 def test_lazyBucketNonExistent(settings):

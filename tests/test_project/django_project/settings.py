@@ -123,3 +123,8 @@ BACKBLAZE_CONFIG: Dict[str, Any] = {
     "application_key_id": "--",
     "application_key": "--",
 }
+CACHES: Dict[str, Any] = {
+    "default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"},
+    "test-cache": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "django-backblaze-b2": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"},
+}
