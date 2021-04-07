@@ -1,4 +1,6 @@
 import logging
+import time
+from datetime import datetime, timezone
 from typing import Any, Dict
 from unittest import mock
 
@@ -175,6 +177,7 @@ def test_get_available_nameWithOverwrites(settings):
     mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
         {"id_": 1, "file_name": "some_name.txt"}
     )
+    mockedBucket.name = "bucket"
 
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
@@ -187,6 +190,45 @@ def test_get_available_nameWithOverwrites(settings):
         assert availableName == "some_name.txt"
 
 
+def test_get_created_time(settings):
+    currentUTCTimeMillis = round(time.time() * 1000)
+    mockedBucket = mock.Mock(spec=Bucket)
+    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+        {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": str(currentUTCTimeMillis)}
+    )
+    mockedBucket.name = "bucket"
+
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
+        B2Api, "authorize_account"
+    ), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+        api.return_value = mockedBucket
+        storage = BackblazeB2Storage()
+
+        createdTime = storage.get_created_time("some_name.txt")
+
+        assert createdTime == datetime.utcfromtimestamp(currentUTCTimeMillis / 1000).replace(tzinfo=timezone.utc)
+
+
+def test_get_modified_time(settings):
+    currentUTCTimeMillis = round(time.time() * 1000)
+    mockedBucket = mock.Mock(spec=Bucket)
+    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+        {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": currentUTCTimeMillis}
+    )
+    mockedBucket.name = "bucket"
+
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
+        B2Api, "authorize_account"
+    ), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+        api.return_value = mockedBucket
+        storage = BackblazeB2Storage()
+
+        modifiedTime = storage.get_modified_time("some_name.txt")
+
+        assert modifiedTime == datetime.utcfromtimestamp(currentUTCTimeMillis / 1000).replace(tzinfo=timezone.utc)
+        assert modifiedTime == storage.get_created_time("some_name.txt")
+
+
 def test_notImplementedMethods(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})):
         storage = BackblazeB2Storage(opts={"authorizeOnInit": False})
@@ -194,8 +236,6 @@ def test_notImplementedMethods(settings):
         for method, callable in [
             ("listdir", lambda _: storage.listdir("/path")),
             ("get_accessed_time", lambda _: storage.get_accessed_time("/file.txt")),
-            ("get_created_time", lambda _: storage.get_created_time("/file.txt")),
-            ("get_modified_time", lambda _: storage.get_modified_time("/file.txt")),
         ]:
             with pytest.raises(NotImplementedError) as error:
                 callable(None)
