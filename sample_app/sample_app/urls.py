@@ -13,10 +13,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from b2_file_app.views import index  # type: ignore
 from django.contrib import admin
 from django.urls import include, path
-
-from sample_app.b2_file_app.views import index
 
 urlpatterns = [
     path("admin/doc/", include("django.contrib.admindocs.urls")),

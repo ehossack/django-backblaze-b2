@@ -94,8 +94,8 @@ COPY requirements.txt poetry.* pyproject.toml ./
 RUN pip install -r requirements.txt
 RUN poetry config virtualenvs.create false && poetry install
 COPY django_backblaze_b2 ./django_backblaze_b2
-COPY setup.* README.md MANIFEST.in ./
-RUN python setup.py sdist && \
+COPY setup.* README.md ./
+RUN poetry build && \
 	mv dist/django-backblaze-b2*.tar.gz dist/django-backblaze-b2.tar.gz && \
 	pip install dist/django-backblaze-b2.tar.gz && \
 	rm -rf django_backblaze_b2
