@@ -48,6 +48,7 @@ class BackblazeB2Storage(Storage):
         if "opts" in kwargs:
             self._validateOptions(kwargs.get("opts"))
         _merge(opts, kwargs.get("opts", {}))
+        logger.debug(f"Initializing {self.__class__.__name__} with options {opts}")
 
         self._bucketName = opts["bucket"]
         self._defaultFileMetadata = opts["defaultFileInfo"]
