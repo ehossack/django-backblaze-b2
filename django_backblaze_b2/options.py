@@ -41,6 +41,7 @@ class BackblazeB2StorageOptions(TypedDict):
     defaultFileInfo: Dict[str, Any]
     specificBucketNames: ProxiedBucketNames
     accountInfo: Optional[Union[DjangoCacheAccountInfoConfig, InMemoryAccountInfoConfig, SqliteAccountInfoConfig]]
+    forbidFilePropertyCaching: bool
 
 
 def getDefaultB2StorageOptions() -> BackblazeB2StorageOptions:
@@ -56,4 +57,5 @@ def getDefaultB2StorageOptions() -> BackblazeB2StorageOptions:
         "defaultFileInfo": {},
         "specificBucketNames": {"public": None, "loggedIn": None, "staff": None},
         "accountInfo": {"type": "django-cache", "cache": "django-backblaze-b2"},
+        "forbidFilePropertyCaching": False,
     }

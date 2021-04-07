@@ -12,12 +12,12 @@ class B2File(File):
     """Read/Write as lazy as possible"""
 
     def __init__(
-        self, name: str, bucket: Bucket, sizeProvider: Callable[[str], int], fileInfos: Dict[str, str], mode: str,
+        self, name: str, bucket: Bucket, sizeProvider: Callable[[str], int], fileMetadata: Dict[str, Any], mode: str,
     ):
         self.name: str = name
         self._bucket: Bucket = bucket
         self._sizeProvider = sizeProvider
-        self._fileInfos = fileInfos
+        self._fileMetadata = fileMetadata
         self._mode: str = mode
         self._hasUnwrittenData: bool = False
         self._contents: Optional[IO] = None
@@ -69,7 +69,7 @@ class B2File(File):
         """
         logger.debug(f"Saving {self.name} to b2 bucket ({self._bucket.get_id()})")
         self._bucket.upload_bytes(
-            data_bytes=content.read(), file_name=self.name, file_infos=self._fileInfos,
+            data_bytes=content.read(), file_name=self.name, file_infos=self._fileMetadata,
         )
         self._hasUnwrittenData = False
         return self.name

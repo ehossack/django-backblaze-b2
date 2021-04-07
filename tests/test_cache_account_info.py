@@ -13,10 +13,11 @@ def allowed() -> Dict:
 
 
 @pytest.fixture(autouse=True)
-def clear_test_cache():
+def clear_caches():
     from django.core.cache import caches
 
-    caches["test-cache"].clear()
+    for cache in caches.all():
+        cache.clear()
 
 
 def test_helpful_error_on_misconfiguration():

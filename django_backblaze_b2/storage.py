@@ -1,15 +1,19 @@
 from datetime import datetime
+from hashlib import sha3_224 as hash
 from logging import getLogger
 from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
 
 from b2sdk.account_info.abstract import AbstractAccountInfo
 from b2sdk.cache import AuthInfoCache
+from b2sdk.exception import FileOrBucketNotFound
 from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo, SqliteAccountInfo
-from b2sdk.v1.exception import FileNotPresent, NonExistentBucket
+from b2sdk.v1.exception import NonExistentBucket
+from django.core.cache.backends.base import BaseCache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
+from typing_extensions import TypedDict
 
 from django_backblaze_b2.b2_file import B2File
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
@@ -23,6 +27,18 @@ from django_backblaze_b2.options import (
 logger = getLogger("django-backblaze-b2")
 
 
+class _BaseFileInfoDict(TypedDict):
+    fileId: str
+    fileName: str
+    fileInfo: dict
+
+
+class _FileInfoDict(_BaseFileInfoDict, total=False):
+    size: int
+    uploadTimestamp: int
+    contentType: str
+
+
 @deconstructible
 class BackblazeB2Storage(Storage):
     """Storage class which fulfills the Django Storage contract through b2 apis"""
@@ -31,10 +47,11 @@ class BackblazeB2Storage(Storage):
         opts = self._getDjangoSettingsOptions(kwargs.get("opts", {}))
         if "opts" in kwargs:
             self._validateOptions(kwargs.get("opts"))
-        merge(opts, kwargs.get("opts", {}))
+        _merge(opts, kwargs.get("opts", {}))
 
         self._bucketName = opts["bucket"]
-        self._defaultFileInfo = opts["defaultFileInfo"]
+        self._defaultFileMetadata = opts["defaultFileInfo"]
+        self._forbidFilePropertyCaching = opts["forbidFilePropertyCaching"]
         self._authInfo = dict(
             [(k, v) for k, v in opts.items() if k in ["realm", "application_key_id", "application_key"]]
         )
@@ -126,7 +143,7 @@ class BackblazeB2Storage(Storage):
 
     def _open(self, name: str, mode: str) -> File:
         return B2File(
-            name=name, bucket=self.bucket, fileInfos=self._defaultFileInfo, mode=mode, sizeProvider=self.size,
+            name=name, bucket=self.bucket, fileMetadata=self._defaultFileMetadata, mode=mode, sizeProvider=self.size,
         )
 
     def _save(self, name: str, content: IO[Any]) -> str:
@@ -135,30 +152,57 @@ class BackblazeB2Storage(Storage):
         If the file exists it will make another version of that file.
         """
         return B2File(
-            name=name, bucket=self.bucket, fileInfos=self._defaultFileInfo, mode="w", sizeProvider=self.size,
+            name=name, bucket=self.bucket, fileMetadata=self._defaultFileMetadata, mode="w", sizeProvider=self.size,
         ).saveAndRetrieveFile(content)
 
     def path(self, name: str) -> str:
         return name
 
     def delete(self, name: str) -> None:
-        try:
-            fileInfo = self.bucket.get_file_info_by_name(name)
-            logger.debug(f"Deleting file {name} id=({fileInfo.id_})")
-            self.b2Api.delete_file_version(file_id=fileInfo.id_, file_name=name)
-        except FileNotPresent:
+        fileInfo = self._fileInfo(name)
+        if fileInfo:
+            logger.debug(f"Deleting file {name} id=({fileInfo['fileId']})")
+            self.b2Api.delete_file_version(file_id=fileInfo["fileId"], file_name=name)
+            if self._cache:
+                self._cache.delete(self._fileCacheKey(name))
+        else:
             logger.debug("Not found")
 
-    def exists(self, name: str) -> bool:
+    def _fileInfo(self, name: str) -> Optional[_FileInfoDict]:
         try:
-            self.bucket.get_file_info_by_name(name)
-            return True
-        except FileNotPresent:
-            return False
+            if self._cache:
+                cacheKey = self._fileCacheKey(name)
+                timeoutInSeconds = 60
+
+                def loadInfo():
+                    logger.debug(f"file info cache miss for {name}")
+                    return self.bucket.get_file_info_by_name(name).as_dict()
+
+                return self._cache.get_or_set(key=cacheKey, default=loadInfo, timeout=timeoutInSeconds)
+            return self.bucket.get_file_info_by_name(name)
+        except FileOrBucketNotFound:
+            return None
+
+    def _fileCacheKey(self, name: str) -> str:
+        return hash(f"{self.bucket.name}__{name}".encode()).hexdigest()
+
+    @property
+    def _cache(self) -> Optional[BaseCache]:
+        if (
+            not self._forbidFilePropertyCaching
+            and self.b2Api  # force init
+            and self._accountInfo
+            and isinstance(self._accountInfo, DjangoCacheAccountInfo)
+        ):
+            return self._accountInfo.cache
+        return None
+
+    def exists(self, name: str) -> bool:
+        return bool(self._fileInfo(name))
 
     def size(self, name: str) -> int:
-        fileInfo = self.bucket.get_file_info_by_name(name)
-        return fileInfo.size if fileInfo.size is not None else 0
+        fileInfo = self._fileInfo(name)
+        return fileInfo.get("size", 0) if fileInfo else 0
 
     def url(self, name: Optional[str]) -> str:
         if not name:
@@ -205,7 +249,7 @@ class BackblazeB2Storage(Storage):
         raise NotImplementedError("subclasses of Storage must provide a get_modified_time() method")
 
 
-def merge(target: Dict, source: Dict, path=None) -> Dict:
+def _merge(target: Dict, source: Dict, path=None) -> Dict:
     """merges b into a
     https://stackoverflow.com/a/7205107/11076240
     """
@@ -215,7 +259,7 @@ def merge(target: Dict, source: Dict, path=None) -> Dict:
         if key in target:
             printablePath = ".".join(path + [str(key)])
             if isinstance(target[key], dict) and isinstance(source[key], dict):
-                merge(target[key], source[key], path + [str(key)])
+                _merge(target[key], source[key], path + [str(key)])
             elif target[key] != source[key]:
                 logger.debug(f"Overriding setting {printablePath} with value {source[key]}")
                 target[key] = source[key]

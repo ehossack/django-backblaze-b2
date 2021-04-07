@@ -205,6 +205,7 @@ def test_notImplementedMethods(settings):
 
 def test_existsFileDoesNotExist(settings):
     mockedBucket = mock.Mock(spec=Bucket)
+    mockedBucket.name = "bucketname"
     mockedBucket.get_file_info_by_name.side_effect = FileNotPresent()
 
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
