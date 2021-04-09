@@ -85,6 +85,7 @@ This is great, but most packages use an older version of the S3 Api (v2). Backbl
 * Tested
 * No hacks required to get up and running around API deficiencies (any hacks are not exposed in API)
 * Support for public/private files, restricted via Django user permissions
+* Support for CDN and cached url details
 
 ## How it works
 
@@ -94,13 +95,14 @@ This is great, but most packages use an older version of the S3 Api (v2). Backbl
     2. `/b2l/`
     3. `/b2s/`
 These routes act as a proxy/intermediary between the requester and backblaze b2 apis. The public `/b2/` allows exposing files from a private bucket, and the logged-in and staff routes will perform the known validations of a django app to prevent unauthorized access.
+* If you use a CDN config, you can specify the CDN options and then include the bucket url segments (`/file/<bucket-name>/`) if your CDN is proxying the classic b2 url (e.g. `f000.backblazeb2.com`) or not, if you are proxying the s3-compatible url.
 
 ### Gotchas
 
 * The original filename + any upload paths is stored in the database. Thus your column name must be of sufficient length to hold that (unchanged behaviour from `FileSystemStorage`)
 *  When retrieving files from the `PublicStorage`, `LoggedInStorage` or `StaffStorage`, you may not override the `"bucket"` or authorization options, or else when the app proxies the file download, it will be unable to retrieve the file from the respective bucket.
 * Simply using `LoggedInStorage` or `StaffStorage` is not enough to protect your files if your bucket is not public. If any individual gains access to the file ids/urls for these files, there is no authentication around them. It is up to the implementer to ensure the security of their application.
-* Once the file is uploaded, and someone obtains a file url (e.g. http://djangodomain.com/b2l/uploads/image.png), the model will no longer be checked for the file. This means that if you share the bucket between multiple use-cases, you could in theory find finds that don't belong to your django app, or similarly if you delete/change your models, the files could still be downloaded. Consider using an app like [django-cleanup](https://github.com/un1t/django-cleanup) if this is important to you
+* Once the file is uploaded, and someone obtains a file url (e.g. http://djangodomain.com/b2l/uploads/image.png), the django model is no longer involved in file resolution. This means that if you share the bucket between multiple use-cases, you could in theory find files that don't belong to your django app (e.g. some image2.png), or similarly if you delete/change your models, the files could still be downloaded. Consider using an app like [django-cleanup](https://github.com/un1t/django-cleanup) if this is important to you
 
 ## Contributing
 

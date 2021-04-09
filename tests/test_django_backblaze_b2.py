@@ -142,12 +142,52 @@ def test_generatesPublicFileUrlAsRawB2Url():
     with _mockedBucket(), mock.patch.object(
         bucket, "as_dict", return_value={"bucketType": "allPublic"}
     ), mock.patch.object(
-        B2Api, "get_download_url_for_file_name", return_value="http://randonneurs.bc.ca"
+        B2Api,
+        "get_download_url_for_file_name",
+        side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
     ) as getDownloadUrl:
         from django_backblaze_b2 import PublicStorage
 
-        assert PublicStorage().url("some/file.jpeg") == "http://randonneurs.bc.ca"
+        storage = PublicStorage()
+
+        assert storage.url("some/file.jpeg") == "https://f000.backblazeb2.com/file/django/some/file.jpeg"
         getDownloadUrl.assert_called_with(bucket_name="django", file_name="some/file.jpeg")
+
+
+@pytest.mark.django_db
+def test_generatesPublicFileUrlAsCDNUrl():
+    with _mockedBucket(), mock.patch.object(
+        bucket, "as_dict", return_value={"bucketType": "allPublic"}
+    ), mock.patch.object(
+        B2Api,
+        "get_download_url_for_file_name",
+        side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+    ):
+        from django_backblaze_b2 import PublicStorage
+
+        storage = PublicStorage(
+            opts={"cdnConfig": {"baseUrl": "https://randonneurs.bc.ca", "includeBucketUrlSegments": True}}
+        )
+
+        assert storage.url("some/file.jpeg") == "https://randonneurs.bc.ca/file/django/some/file.jpeg"
+
+
+@pytest.mark.django_db
+def test_generatesPublicFileUrlAsCDNUrlWithoutPath():
+    with _mockedBucket(), mock.patch.object(
+        bucket, "as_dict", return_value={"bucketType": "allPublic"}
+    ), mock.patch.object(
+        B2Api,
+        "get_download_url_for_file_name",
+        side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+    ):
+        from django_backblaze_b2 import PublicStorage
+
+        storage = PublicStorage(
+            opts={"cdnConfig": {"baseUrl": "https://s3.randonneurs.bc.ca", "includeBucketUrlSegments": False}}
+        )
+
+        assert storage.url("some/file.jpeg") == "https://s3.randonneurs.bc.ca/some/file.jpeg"
 
 
 @pytest.mark.django_db
@@ -266,11 +306,12 @@ def test_appropriatelyHandlesNonExtantFile(tempFile, client: Client, caplog):
                     "Initializing PublicStorage with options "
                     "{'realm': 'production', 'application_key_id': '--', 'application_key': '--', 'bucket': 'django', "
                     "'authorizeOnInit': False, 'validateOnInit': False, 'allowFileOverwrites': False, "
-                    "'nonExistentBucketDetails': None, "
-                    "'defaultFileInfo': {}, "
-                    "'specificBucketNames': {'public': None, 'loggedIn': None, 'staff': None}, "
                     "'accountInfo': {'type': 'django-cache', 'cache': 'django-backblaze-b2'}, "
-                    "'forbidFilePropertyCaching': False"
+                    "'forbidFilePropertyCaching': False, "
+                    "'specificBucketNames': {'public': None, 'loggedIn': None, 'staff': None}, "
+                    "'cdnConfig': None, "
+                    "'nonExistentBucketDetails': None, "
+                    "'defaultFileInfo': {}"
                     "}"
                 ),
             ),
