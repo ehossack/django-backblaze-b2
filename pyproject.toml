@@ -3,7 +3,7 @@ line-length = 120
 
 [tool.poetry]
 name = "django-backblaze-b2"
-version = "2.2.0"
+version = "2.2.1"
 description = "A Django app to use backblaze b2 as storage."
 authors = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
 maintainers = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
@@ -43,6 +43,7 @@ include = ["py.typed"]
 python = "^3.6.1"
 b2sdk = ">=1.3.0"
 django = ">=3.0"
+typing-extensions = "^3.7.4"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
