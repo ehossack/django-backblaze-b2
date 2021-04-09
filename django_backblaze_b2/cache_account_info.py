@@ -1,5 +1,6 @@
 import logging
 from functools import wraps
+from hashlib import sha3_224 as hash
 from typing import Iterable, Tuple
 
 from b2sdk.v1 import UrlPoolAccountInfo
@@ -154,9 +155,4 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
 
 
 def _bucket_cachekey(bucket_name: str) -> str:
-    """Current django versions do not support cache keys greater than 250 characters.
-    Backblaze bucket names allow a max of 50 characters. This is a futureproofing error"""
-    assert (
-        len(bucket_name) + len("bucket-name__") < 250
-    ), "This version of django-backblaze-b2 does not support cache keys greater than 250 in length."
-    return f"bucket-name__{bucket_name}"
+    return hash(f"bucket-name__{bucket_name}".encode()).hexdigest()
