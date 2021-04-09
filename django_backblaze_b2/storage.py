@@ -39,6 +39,10 @@ class _FileInfoDict(_BaseFileInfoDict, total=False):
     contentType: str
 
 
+class B2FileInformationNotAvailableException(Exception):
+    ...
+
+
 @deconstructible
 class BackblazeB2Storage(Storage):
     """Storage class which fulfills the Django Storage contract through b2 apis"""
@@ -240,14 +244,28 @@ class BackblazeB2Storage(Storage):
         Return the creation time (as a datetime) of the file specified by name.
         The datetime will be timezone-aware if USE_TZ=True.
         """
-        raise NotImplementedError("subclasses of Storage must provide a get_created_time() method")
+        from datetime import timezone
+
+        from django.conf import settings
+
+        fileInfo = self._fileInfo(name)
+        try:
+            if fileInfo and float(fileInfo.get("uploadTimestamp", 0)) > 0:
+                timestamp = float(fileInfo["uploadTimestamp"]) / 1000.0
+                if settings.USE_TZ:
+                    # Safe to use .replace() because UTC doesn't have DST
+                    return datetime.utcfromtimestamp(timestamp).replace(tzinfo=timezone.utc)
+                return datetime.fromtimestamp(timestamp)
+        except ValueError as e:
+            raise B2FileInformationNotAvailableException(f"'uploadTimestamp' from API not valid for {name}: {e}")
+        raise B2FileInformationNotAvailableException(f"'uploadTimestamp' not available for {name}")
 
     def get_modified_time(self, name: str) -> datetime:
         """
         Return the last modified time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
-        raise NotImplementedError("subclasses of Storage must provide a get_modified_time() method")
+        return self.get_created_time(name)
 
 
 def _merge(target: Dict, source: Dict, path=None) -> Dict:
