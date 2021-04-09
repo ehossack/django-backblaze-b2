@@ -1,9 +1,6 @@
 from typing import Any, Dict, Optional, Union
 
-try:
-    from typing import TypedDict
-except Exception:
-    from mypy_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 
 class ProxiedBucketNames(TypedDict):
@@ -13,16 +10,16 @@ class ProxiedBucketNames(TypedDict):
 
 
 class DjangoCacheAccountInfoConfig(TypedDict):
-    type: str  # only "django-cache" is valid
+    type: Literal["django-cache"]
     cache: str
 
 
 class InMemoryAccountInfoConfig(TypedDict):
-    type: str  # only "memory" is valid
+    type: Literal["memory"]
 
 
 class SqliteAccountInfoConfig(TypedDict):
-    type: str  # only "sqlite" is valid
+    type: Literal["sqlite"]
     databasePath: str
 
 
