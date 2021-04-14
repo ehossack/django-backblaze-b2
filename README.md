@@ -12,15 +12,25 @@ Implementation wraps [Official Python SDK](https://github.com/Backblaze/b2-sdk-p
 
 1. Install from this repo, or install from PyPi: `pip install django-backblaze-b2`
 As tested, requires python 3.6 or greater but solely due to type annotations. PRs welcome :)
-1. Configure your django `settings`. The absolute minimum config would be:
+1. Configure your django `settings`. A minimalistic config would be:
 ```python
+CACHES = {
+    "default": .... ,
+    # add a cache via db table or memcached that can be accessed from multiple threads
+    "django-backblaze-b2": {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_backblaze_b2_cache_table',
+    }
+}
+
 BACKBLAZE_CONFIG = {
-    "application_key_id": os.getenv("BACKBLAZE_KEY_ID"), # however you want to securely retrieve these values
+    # however you want to securely retrieve these values
+    "application_key_id": os.getenv("BACKBLAZE_KEY_ID"),
     "application_key": os.getenv("BACKBLAZE_KEY"),
 }
 ```
 
-Theoretically you may now refer to the base storage class as a storage class.  
+Theoretically you may now refer to the base storage class as a storage class (see the sample app for some usage).
 e.g.
 ```python
 from django_backblaze_b2 import BackblazeB2Storage
@@ -31,11 +41,7 @@ class MyModel(models.Model):
         storage=BackblazeB2Storage
     )
 ```
-### Caching
 
-Because the SDK will authorize/request with the b2 server to retrieve file info, the library caches these account information lookups.  
-By default, the `accountInfo` configuration uses a cache by the name of `django-backblaze-b2` which you must have in your `CACHES` section of your `settings.py`. This is the recommended caching implementation as it leverages the django framework and with that comes thread-safety. You can then use whichever cache implementation you want. It is not recommended to cache with the `default` django cache, as the `clear()` method may be called during the backblaze lifecycle.  
-If you do not wish to use this, you can use a sqlite database on disk for caching, or use a non-thread-safe in-memory implementation. This is only recommended for single-threaded deployments. (remember in most deployments a new thread serves each request).
 ### Public/Logged-In/Private storage
 
 1. Add `django_backblaze_b2` to your `INSTALLED_APPS`
@@ -46,6 +52,14 @@ If you do not wish to use this, you can use a sqlite database on disk for cachin
         path('', include('django_backblaze_b2.urls')),
     ]
 ```
+
+### Caching
+
+To retrieve file metadata ("file info" as the b2 sdk names it), this library has to authorize and request data from b2 servers, even for just resolving the url for a file. Because these are network calls, and relatively expensive in comparison to a file-based storage, and because data is unlikely to change frequently, there is some caching done by this library.  
+By default, the account information (`accountInfo`) configuration of the settings uses a cache by the name of `django-backblaze-b2` which you must have in your `CACHES` section of your `settings.py`. This is to leverage django's thread-safe cache implementations, and if you are using a database cache table or memcached, (rather than LocMemCache) your cache can be shared by the multiple django processes that typically serve requests.  
+It is not recommended configure `accountInfo` with the `default` django cache, as the `clear()` method may be called during the backblaze lifecycle.  
+If you do not wish to use a django cache, you can use a sqlite database on disk for caching, or use a non-thread-safe in-memory implementation. This is only recommended for single-threaded deployments (remember in most deployments a new thread serves each request).  
+For further discussion on this see https://github.com/ehossack/django-backblaze-b2/issues/16
 
 ### Configurations
 
