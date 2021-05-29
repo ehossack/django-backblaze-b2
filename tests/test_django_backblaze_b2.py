@@ -304,7 +304,8 @@ def test_appropriatelyHandlesNonExtantFile(tempFile, client: Client, caplog):
                 10,
                 (
                     "Initializing PublicStorage with options "
-                    "{'realm': 'production', 'application_key_id': '--', 'application_key': '--', 'bucket': 'django', "
+                    "{'realm': 'production', 'application_key_id': '<redacted>', "
+                    "'application_key': '<redacted>', 'bucket': 'django', "
                     "'authorizeOnInit': False, 'validateOnInit': False, 'allowFileOverwrites': False, "
                     "'accountInfo': {'type': 'django-cache', 'cache': 'django-backblaze-b2'}, "
                     "'forbidFilePropertyCaching': False, "
@@ -317,6 +318,7 @@ def test_appropriatelyHandlesNonExtantFile(tempFile, client: Client, caplog):
             ),
             ("django-backblaze-b2", 10, "PublicStorage will use DjangoCacheAccountInfo"),
             ("django-backblaze-b2", 20, "PublicStorage instantiated to use bucket django"),
+            ("django-backblaze-b2", 10, "Initializing DjangoCacheAccountInfo with cache 'django-backblaze-b2'"),
             ("django-backblaze-b2", 40, f"Debug log failed. Could not retrive b2 file url for uploads/{tempFile}"),
             ("django-backblaze-b2", 10, f"Connected to bucket {bucket.as_dict()}"),
             ("django-backblaze-b2", 10, f"file info cache miss for uploads/{tempFile}"),
