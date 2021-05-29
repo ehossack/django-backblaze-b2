@@ -16,13 +16,13 @@ class PublicStorage(BackblazeB2Storage):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._bucketInfo: Optional[bool] = None
+        self._bucketType: Optional[bool] = None
         self._cdnConfig: Optional[CDNConfig] = kwargs.get("opts", {}).get("cdnConfig")
 
     def _isPublicBucket(self) -> bool:
-        if self._bucketInfo is None:
-            self._bucketInfo = self.bucket.as_dict().get("bucketType") == "allPublic"
-        return self._bucketInfo
+        if self._bucketType is None:
+            self._bucketType = self.bucket.as_dict().get("bucketType") == "allPublic"
+        return self._bucketType
 
     def _getFileUrl(self, name: str) -> str:
         if not self._isPublicBucket():
