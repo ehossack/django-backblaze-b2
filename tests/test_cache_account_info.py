@@ -184,3 +184,25 @@ def test_can_clear_cache(allowed: Dict):
 
     assert bucket_id_or_none is None
     assert error.value is not None
+
+
+def test_can_perform_operation_after_cache_cleared():
+    cacheAccountInfo = DjangoCacheAccountInfo("test-cache")
+    bucket = mock.MagicMock()
+    bucket.id_ = "some-id"
+    bucket.name = "some-name"
+
+    for operation in [
+        lambda: cacheAccountInfo.refresh_entire_bucket_name_cache([]),
+        lambda: cacheAccountInfo.save_bucket(bucket),
+        lambda: cacheAccountInfo.remove_bucket_name("non-extant"),
+    ]:
+
+        cacheAccountInfo.clear()
+
+        failure = None
+        try:
+            operation()
+        except Exception as e:
+            failure = e
+        assert failure is None

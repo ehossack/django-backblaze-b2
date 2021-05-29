@@ -66,6 +66,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         Remove all info about accounts and buckets.
         """
         self.cache.clear()
+        self.cache.set("bucket_names", [])
 
     def _set_auth_data(
         self,
@@ -136,7 +137,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
             return None
 
     def refresh_entire_bucket_name_cache(self, name_id_iterable: Iterable[Tuple[str, str]]):
-        bucket_names_to_remove = set(self.cache.get("bucket_names")) - {name for name, id in name_id_iterable}
+        bucket_names_to_remove = set(self.cache.get("bucket_names", [])) - {name for name, id in name_id_iterable}
         for (bucket_name, bucket_id) in name_id_iterable:
             self.cache.set(_bucket_cachekey(bucket_name), bucket_id)
         for bucket_name in bucket_names_to_remove:
@@ -144,10 +145,10 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
 
     def save_bucket(self, bucket: StoredBucketInfo):
         self.cache.set(_bucket_cachekey(bucket.name), bucket.id_)
-        self.cache.set("bucket_names", list(self.cache.get("bucket_names")) + [bucket.name])
+        self.cache.set("bucket_names", list(self.cache.get("bucket_names", [])) + [bucket.name])
 
     def remove_bucket_name(self, bucket_name):
-        self.cache.set("bucket_names", [n for n in self.cache.get("bucket_names") if n != bucket_name])
+        self.cache.set("bucket_names", [n for n in self.cache.get("bucket_names", []) if n != bucket_name])
         self.cache.delete(_bucket_cachekey(bucket_name))
 
     def __repr__(self) -> str:
