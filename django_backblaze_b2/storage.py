@@ -3,11 +3,12 @@ from hashlib import sha3_224 as hash
 from logging import getLogger
 from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
 
+from b2sdk.account_info import InMemoryAccountInfo
 from b2sdk.account_info.abstract import AbstractAccountInfo
+from b2sdk.account_info.sqlite_account_info import SqliteAccountInfo
+from b2sdk.api import B2Api, Bucket
 from b2sdk.cache import AuthInfoCache
-from b2sdk.exception import FileOrBucketNotFound
-from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo, SqliteAccountInfo
-from b2sdk.v1.exception import NonExistentBucket
+from b2sdk.exception import FileOrBucketNotFound, NonExistentBucket
 from django.core.cache.backends.base import BaseCache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File

@@ -3,8 +3,8 @@ from functools import wraps
 from hashlib import sha3_224 as hash
 from typing import Iterable, Optional, Tuple
 
+from b2sdk.account_info.exception import MissingAccountData
 from b2sdk.account_info.upload_url_pool import UrlPoolAccountInfo
-from b2sdk.v1.exception import MissingAccountData
 from django.core.cache import InvalidCacheBackendError, caches
 from django.core.exceptions import ImproperlyConfigured
 

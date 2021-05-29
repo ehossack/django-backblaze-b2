@@ -4,9 +4,9 @@ from typing import Callable, Optional
 from unittest import mock
 
 import pytest
+from b2sdk.api import B2Api, Bucket
 from b2sdk.exception import FileNotPresent
 from b2sdk.file_version import FileVersionInfoFactory
-from b2sdk.v1 import B2Api, Bucket
 from django.contrib.auth.models import User
 from django.core.files import File
 from django.http import FileResponse
