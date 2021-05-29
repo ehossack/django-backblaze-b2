@@ -184,7 +184,7 @@ class BackblazeB2Storage(Storage):
                     return self.bucket.get_file_info_by_name(name).as_dict()
 
                 return self._cache.get_or_set(key=cacheKey, default=loadInfo, timeout=timeoutInSeconds)
-            return self.bucket.get_file_info_by_name(name)
+            return self.bucket.get_file_info_by_name(name).as_dict()
         except FileOrBucketNotFound:
             return None
 

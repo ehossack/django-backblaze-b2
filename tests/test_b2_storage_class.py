@@ -229,6 +229,25 @@ def test_get_modified_time(settings):
         assert modifiedTime == storage.get_created_time("some_name.txt")
 
 
+def test_get_size_without_caching(settings):
+    currentUTCTimeMillis = round(time.time() * 1000)
+    mockedBucket = mock.Mock(spec=Bucket)
+    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+        {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": currentUTCTimeMillis, "content-length": 12345}
+    )
+    mockedBucket.name = "bucket"
+
+    with mock.patch.object(
+        settings, "BACKBLAZE_CONFIG", _settingsDict({"forbidFilePropertyCaching": True})
+    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+        api.return_value = mockedBucket
+        storage = BackblazeB2Storage()
+
+        size = storage.size("some_name.txt")
+
+        assert size == 12345
+
+
 def test_notImplementedMethods(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})):
         storage = BackblazeB2Storage(opts={"authorizeOnInit": False})
