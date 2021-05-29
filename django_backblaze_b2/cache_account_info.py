@@ -8,7 +8,7 @@ from b2sdk.account_info.upload_url_pool import UrlPoolAccountInfo
 from django.core.cache import InvalidCacheBackendError, caches
 from django.core.exceptions import ImproperlyConfigured
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("django-backblaze-b2")
 
 
 class StoredBucketInfo:
