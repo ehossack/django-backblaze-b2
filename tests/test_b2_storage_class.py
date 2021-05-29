@@ -125,9 +125,11 @@ def test_cachedAccountInfo(settings):
         "auth-token",
         "api-url",
         "download-url",
-        "minimum-part-size",
+        "recommended-part-size",
+        "absolute-minimum-part-size",
         "application-key",
         "realm",
+        "http://s3.api.url",
         dict(bucketId=None, bucketName=None, capabilities=["readFiles"], namePrefix=None,),
         "application-key-id",
     )

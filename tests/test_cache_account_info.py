@@ -64,9 +64,14 @@ def test_raises_if_attributes_are_none():
     assert str(error.value) == "Missing account data: download_url"
 
     with pytest.raises(MissingAccountData) as error:
-        cacheAccountInfo.get_minimum_part_size()
+        cacheAccountInfo.get_absolute_minimum_part_size()
 
-    assert str(error.value) == "Missing account data: minimum_part_size"
+    assert str(error.value) == "Missing account data: absolute_minimum_part_size"
+
+    with pytest.raises(MissingAccountData) as error:
+        cacheAccountInfo.get_recommended_part_size()
+
+    assert str(error.value) == "Missing account data: recommended_part_size"
 
     with pytest.raises(MissingAccountData) as error:
         cacheAccountInfo.get_realm()
@@ -78,6 +83,9 @@ def test_raises_if_attributes_are_none():
 
     assert str(error.value) == "Missing account data: allowed"
 
+    # notably, no error in default sqlite implementation
+    assert cacheAccountInfo.get_s3_api_url() == ""
+
 
 def test_can_store_and_retrieve_values(allowed: Dict):
     cacheAccountInfo = DjangoCacheAccountInfo("test-cache")
@@ -86,9 +94,11 @@ def test_can_store_and_retrieve_values(allowed: Dict):
         "auth-token",
         "api-url",
         "download-url",
-        "minimum-part-size",
+        "recommended-part-size",
+        "absolute-minimum-part-size",
         "application-key",
         "realm",
+        "http://s3-api-url/",
         allowed,
         "application-key-id",
     )
@@ -97,9 +107,11 @@ def test_can_store_and_retrieve_values(allowed: Dict):
     assert cacheAccountInfo.get_account_auth_token() == "auth-token"
     assert cacheAccountInfo.get_api_url() == "api-url"
     assert cacheAccountInfo.get_download_url() == "download-url"
-    assert cacheAccountInfo.get_minimum_part_size() == "minimum-part-size"
+    assert cacheAccountInfo.get_absolute_minimum_part_size() == "absolute-minimum-part-size"
+    assert cacheAccountInfo.get_recommended_part_size() == "recommended-part-size"
     assert cacheAccountInfo.get_application_key() == "application-key"
     assert cacheAccountInfo.get_application_key_id() == "application-key-id"
+    assert cacheAccountInfo.get_s3_api_url() == "http://s3-api-url/"
     assert cacheAccountInfo.get_realm() == "realm"
     assert cacheAccountInfo.get_allowed() == allowed
 
@@ -165,9 +177,11 @@ def test_can_clear_cache(allowed: Dict):
         "auth-token",
         "api-url",
         "download-url",
-        "minimum-part-size",
+        "recommended-part-size",
+        "absolute-minimum-part-size",
         "application-key",
         "realm",
+        "http://s3-api-url/",
         allowed,
         "application-key-id",
     )
