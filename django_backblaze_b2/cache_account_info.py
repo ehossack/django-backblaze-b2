@@ -1,14 +1,14 @@
 import logging
 from functools import wraps
 from hashlib import sha3_224 as hash
-from typing import Iterable, Tuple
+from typing import Iterable, Optional, Tuple
 
-from b2sdk.v1 import UrlPoolAccountInfo
-from b2sdk.v1.exception import MissingAccountData
+from b2sdk.account_info.exception import MissingAccountData
+from b2sdk.account_info.upload_url_pool import UrlPoolAccountInfo
 from django.core.cache import InvalidCacheBackendError, caches
 from django.core.exceptions import ImproperlyConfigured
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("django-backblaze-b2")
 
 
 class StoredBucketInfo:
@@ -66,6 +66,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         Remove all info about accounts and buckets.
         """
         self.cache.clear()
+        self.cache.set("bucket_names", [])
 
     def _set_auth_data(
         self,
@@ -73,9 +74,11 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         auth_token,
         api_url,
         download_url,
-        minimum_part_size,
+        recommended_part_size,
+        absolute_minimum_part_size,
         application_key,
         realm,
+        s3_api_url,
         allowed,
         application_key_id,
     ):
@@ -83,9 +86,11 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         self.cache.set("auth_token", auth_token)
         self.cache.set("api_url", api_url)
         self.cache.set("download_url", download_url)
-        self.cache.set("minimum_part_size", minimum_part_size)
+        self.cache.set("recommended_part_size", recommended_part_size)
+        self.cache.set("absolute_minimum_part_size", absolute_minimum_part_size)
         self.cache.set("application_key", application_key)
         self.cache.set("realm", realm)
+        self.cache.set("s3_api_url", s3_api_url)
         self.cache.set("allowed", allowed)
         self.cache.set("application_key_id", application_key_id)
 
@@ -121,22 +126,40 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         return self.cache.get("realm")
 
     @_raise_missing_if_result_is_none
-    def get_minimum_part_size(self):
-        return self.cache.get("minimum_part_size")
+    def get_absolute_minimum_part_size(self):
+        return self.cache.get("absolute_minimum_part_size")
+
+    @_raise_missing_if_result_is_none
+    def get_recommended_part_size(self):
+        return self.cache.get("recommended_part_size")
 
     @_raise_missing_if_result_is_none
     def get_allowed(self):
         return self.cache.get("allowed")
 
-    def get_bucket_id_or_none_from_bucket_name(self, bucket_name: str):
+    def get_s3_api_url(self):
+        return self.cache.get("s3_api_url") or ""
+
+    def get_bucket_id_or_none_from_bucket_name(self, bucket_name: str) -> Optional[str]:
         try:
             return self.cache.get(_bucket_cachekey(bucket_name))
         except KeyError as e:
             logger.debug(f"cache miss {bucket_name}: {e}")
             return None
 
+    def get_bucket_name_or_none_from_bucket_id(self, bucket_id: str) -> Optional[str]:
+        try:
+            for bucket_name in self.cache.get("bucket_names", []):
+                bucket_id = self.cache.get(_bucket_cachekey(bucket_name))
+                if bucket_id:
+                    return bucket_name
+            logger.debug(f"cache miss {bucket_id}")
+        except KeyError as e:
+            logger.debug(f"cache miss {bucket_id}: {e}")
+        return None
+
     def refresh_entire_bucket_name_cache(self, name_id_iterable: Iterable[Tuple[str, str]]):
-        bucket_names_to_remove = set(self.cache.get("bucket_names")) - {name for name, id in name_id_iterable}
+        bucket_names_to_remove = set(self.cache.get("bucket_names", [])) - {name for name, id in name_id_iterable}
         for (bucket_name, bucket_id) in name_id_iterable:
             self.cache.set(_bucket_cachekey(bucket_name), bucket_id)
         for bucket_name in bucket_names_to_remove:
@@ -144,10 +167,10 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
 
     def save_bucket(self, bucket: StoredBucketInfo):
         self.cache.set(_bucket_cachekey(bucket.name), bucket.id_)
-        self.cache.set("bucket_names", list(self.cache.get("bucket_names")) + [bucket.name])
+        self.cache.set("bucket_names", list(self.cache.get("bucket_names", [])) + [bucket.name])
 
     def remove_bucket_name(self, bucket_name):
-        self.cache.set("bucket_names", [n for n in self.cache.get("bucket_names") if n != bucket_name])
+        self.cache.set("bucket_names", [n for n in self.cache.get("bucket_names", []) if n != bucket_name])
         self.cache.delete(_bucket_cachekey(bucket_name))
 
     def __repr__(self) -> str:

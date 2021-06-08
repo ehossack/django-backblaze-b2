@@ -3,11 +3,12 @@ from hashlib import sha3_224 as hash
 from logging import getLogger
 from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
 
+from b2sdk.account_info import InMemoryAccountInfo
 from b2sdk.account_info.abstract import AbstractAccountInfo
+from b2sdk.account_info.sqlite_account_info import SqliteAccountInfo
+from b2sdk.api import B2Api, Bucket
 from b2sdk.cache import AuthInfoCache
-from b2sdk.exception import FileOrBucketNotFound
-from b2sdk.v1 import B2Api, Bucket, InMemoryAccountInfo, SqliteAccountInfo
-from b2sdk.v1.exception import NonExistentBucket
+from b2sdk.exception import FileOrBucketNotFound, NonExistentBucket
 from django.core.cache.backends.base import BaseCache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
@@ -52,7 +53,9 @@ class BackblazeB2Storage(Storage):
         if "opts" in kwargs:
             self._validateOptions(kwargs.get("opts"))
         _merge(opts, kwargs.get("opts", {}))
-        logger.debug(f"Initializing {self.__class__.__name__} with options {opts}")
+        logOpts = opts.copy()
+        logOpts.update({"application_key_id": "<redacted>", "application_key": "<redacted>"})
+        logger.debug(f"Initializing {self.__class__.__name__} with options {logOpts}")
 
         self._bucketName = opts["bucket"]
         self._defaultFileMetadata = opts["defaultFileInfo"]
@@ -184,7 +187,7 @@ class BackblazeB2Storage(Storage):
                     return self.bucket.get_file_info_by_name(name).as_dict()
 
                 return self._cache.get_or_set(key=cacheKey, default=loadInfo, timeout=timeoutInSeconds)
-            return self.bucket.get_file_info_by_name(name)
+            return self.bucket.get_file_info_by_name(name).as_dict()
         except FileOrBucketNotFound:
             return None
 

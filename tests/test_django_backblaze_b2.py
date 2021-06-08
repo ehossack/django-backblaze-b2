@@ -4,9 +4,9 @@ from typing import Callable, Optional
 from unittest import mock
 
 import pytest
+from b2sdk.api import B2Api, Bucket
 from b2sdk.exception import FileNotPresent
-from b2sdk.file_version import FileVersionInfoFactory
-from b2sdk.v1 import B2Api, Bucket
+from b2sdk.file_version import FileVersionFactory
 from django.contrib.auth.models import User
 from django.core.files import File
 from django.http import FileResponse
@@ -15,6 +15,7 @@ from django_backblaze_b2 import __version__
 
 bucket = mock.create_autospec(spec=Bucket, name=f"Mock Bucket for {__name__}")
 bucket.name = "bucketname"
+fileVersionFactory = FileVersionFactory(mock.create_autospec(spec=B2Api, name=f"Mock API for {__name__}"))
 
 
 def test_version():
@@ -304,7 +305,8 @@ def test_appropriatelyHandlesNonExtantFile(tempFile, client: Client, caplog):
                 10,
                 (
                     "Initializing PublicStorage with options "
-                    "{'realm': 'production', 'application_key_id': '--', 'application_key': '--', 'bucket': 'django', "
+                    "{'realm': 'production', 'application_key_id': '<redacted>', "
+                    "'application_key': '<redacted>', 'bucket': 'django', "
                     "'authorizeOnInit': False, 'validateOnInit': False, 'allowFileOverwrites': False, "
                     "'accountInfo': {'type': 'django-cache', 'cache': 'django-backblaze-b2'}, "
                     "'forbidFilePropertyCaching': False, "
@@ -317,6 +319,7 @@ def test_appropriatelyHandlesNonExtantFile(tempFile, client: Client, caplog):
             ),
             ("django-backblaze-b2", 10, "PublicStorage will use DjangoCacheAccountInfo"),
             ("django-backblaze-b2", 20, "PublicStorage instantiated to use bucket django"),
+            ("django-backblaze-b2", 10, "Initializing DjangoCacheAccountInfo with cache 'django-backblaze-b2'"),
             ("django-backblaze-b2", 40, f"Debug log failed. Could not retrive b2 file url for uploads/{tempFile}"),
             ("django-backblaze-b2", 10, f"Connected to bucket {bucket.as_dict()}"),
             ("django-backblaze-b2", 10, f"file info cache miss for uploads/{tempFile}"),
@@ -340,7 +343,7 @@ def _mockedBucket():
 def _fileInfo(size: Optional[int] = None, id: str = "someId", doesFileExist: Callable[[], bool] = None):
     def existOrThrow():
         if doesFileExist():
-            return FileVersionInfoFactory.from_response_headers({"id": id, "content-length": size})
+            return fileVersionFactory.from_response_headers({"id": id, "content-length": size})
         raise FileNotPresent()
 
     if doesFileExist is None:
@@ -377,6 +380,6 @@ def _mockFileDoesNotExist(tempFile: File) -> None:
 
 def _mockFileExists(tempFile: File, b2FileId: str = "someId") -> None:
     bucket.get_file_info_by_name.side_effect = None
-    bucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+    bucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
         {"x-bz-file-id": b2FileId, "content-length": tempFile.size}
     )

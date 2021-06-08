@@ -6,13 +6,14 @@ from unittest import mock
 
 import pytest
 from b2sdk.account_info.exception import CorruptAccountInfo
-from b2sdk.exception import FileNotPresent
-from b2sdk.file_version import FileVersionInfoFactory
-from b2sdk.v1 import B2Api, Bucket
-from b2sdk.v1.exception import NonExistentBucket
+from b2sdk.api import B2Api, Bucket
+from b2sdk.exception import FileNotPresent, NonExistentBucket
+from b2sdk.file_version import FileVersionFactory
 from django.core.exceptions import ImproperlyConfigured
 from django_backblaze_b2 import BackblazeB2Storage
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
+
+fileVersionFactory = FileVersionFactory(mock.create_autospec(spec=B2Api, name=f"Mock API for {__name__}"))
 
 
 def test_requiresConfiguration():
@@ -125,9 +126,11 @@ def test_cachedAccountInfo(settings):
         "auth-token",
         "api-url",
         "download-url",
-        "minimum-part-size",
+        "recommended-part-size",
+        "absolute-minimum-part-size",
         "application-key",
         "realm",
+        "http://s3.api.url",
         dict(bucketId=None, bucketName=None, capabilities=["readFiles"], namePrefix=None,),
         "application-key-id",
     )
@@ -174,8 +177,8 @@ def test_urlRequiresName(settings):
 
 def test_get_available_nameWithOverwrites(settings):
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
-        {"id_": 1, "file_name": "some_name.txt"}
+    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
+        headers={"id_": 1, "file_name": "some_name.txt"}
     )
     mockedBucket.name = "bucket"
 
@@ -193,7 +196,7 @@ def test_get_available_nameWithOverwrites(settings):
 def test_get_created_time(settings):
     currentUTCTimeMillis = round(time.time() * 1000)
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
         {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": str(currentUTCTimeMillis)}
     )
     mockedBucket.name = "bucket"
@@ -212,7 +215,7 @@ def test_get_created_time(settings):
 def test_get_modified_time(settings):
     currentUTCTimeMillis = round(time.time() * 1000)
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
         {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": currentUTCTimeMillis}
     )
     mockedBucket.name = "bucket"
@@ -227,6 +230,25 @@ def test_get_modified_time(settings):
 
         assert modifiedTime == datetime.utcfromtimestamp(currentUTCTimeMillis / 1000).replace(tzinfo=timezone.utc)
         assert modifiedTime == storage.get_created_time("some_name.txt")
+
+
+def test_get_size_without_caching(settings):
+    currentUTCTimeMillis = round(time.time() * 1000)
+    mockedBucket = mock.Mock(spec=Bucket)
+    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
+        {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": currentUTCTimeMillis, "content-length": 12345}
+    )
+    mockedBucket.name = "bucket"
+
+    with mock.patch.object(
+        settings, "BACKBLAZE_CONFIG", _settingsDict({"forbidFilePropertyCaching": True})
+    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+        api.return_value = mockedBucket
+        storage = BackblazeB2Storage()
+
+        size = storage.size("some_name.txt")
+
+        assert size == 12345
 
 
 def test_notImplementedMethods(settings):
