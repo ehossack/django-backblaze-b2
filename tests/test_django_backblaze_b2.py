@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 from b2sdk.api import B2Api, Bucket
 from b2sdk.exception import FileNotPresent
-from b2sdk.file_version import FileVersionInfoFactory
+from b2sdk.file_version import FileVersionFactory
 from django.contrib.auth.models import User
 from django.core.files import File
 from django.http import FileResponse
@@ -15,6 +15,7 @@ from django_backblaze_b2 import __version__
 
 bucket = mock.create_autospec(spec=Bucket, name=f"Mock Bucket for {__name__}")
 bucket.name = "bucketname"
+fileVersionFactory = FileVersionFactory(mock.create_autospec(spec=B2Api, name=f"Mock API for {__name__}"))
 
 
 def test_version():
@@ -342,7 +343,7 @@ def _mockedBucket():
 def _fileInfo(size: Optional[int] = None, id: str = "someId", doesFileExist: Callable[[], bool] = None):
     def existOrThrow():
         if doesFileExist():
-            return FileVersionInfoFactory.from_response_headers({"id": id, "content-length": size})
+            return fileVersionFactory.from_response_headers({"id": id, "content-length": size})
         raise FileNotPresent()
 
     if doesFileExist is None:
@@ -379,6 +380,6 @@ def _mockFileDoesNotExist(tempFile: File) -> None:
 
 def _mockFileExists(tempFile: File, b2FileId: str = "someId") -> None:
     bucket.get_file_info_by_name.side_effect = None
-    bucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+    bucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
         {"x-bz-file-id": b2FileId, "content-length": tempFile.size}
     )

@@ -8,10 +8,12 @@ import pytest
 from b2sdk.account_info.exception import CorruptAccountInfo
 from b2sdk.api import B2Api, Bucket
 from b2sdk.exception import FileNotPresent, NonExistentBucket
-from b2sdk.file_version import FileVersionInfoFactory
+from b2sdk.file_version import FileVersionFactory
 from django.core.exceptions import ImproperlyConfigured
 from django_backblaze_b2 import BackblazeB2Storage
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
+
+fileVersionFactory = FileVersionFactory(mock.create_autospec(spec=B2Api, name=f"Mock API for {__name__}"))
 
 
 def test_requiresConfiguration():
@@ -175,8 +177,8 @@ def test_urlRequiresName(settings):
 
 def test_get_available_nameWithOverwrites(settings):
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
-        {"id_": 1, "file_name": "some_name.txt"}
+    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
+        headers={"id_": 1, "file_name": "some_name.txt"}
     )
     mockedBucket.name = "bucket"
 
@@ -194,7 +196,7 @@ def test_get_available_nameWithOverwrites(settings):
 def test_get_created_time(settings):
     currentUTCTimeMillis = round(time.time() * 1000)
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
         {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": str(currentUTCTimeMillis)}
     )
     mockedBucket.name = "bucket"
@@ -213,7 +215,7 @@ def test_get_created_time(settings):
 def test_get_modified_time(settings):
     currentUTCTimeMillis = round(time.time() * 1000)
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
         {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": currentUTCTimeMillis}
     )
     mockedBucket.name = "bucket"
@@ -233,7 +235,7 @@ def test_get_modified_time(settings):
 def test_get_size_without_caching(settings):
     currentUTCTimeMillis = round(time.time() * 1000)
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = FileVersionInfoFactory.from_response_headers(
+    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
         {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": currentUTCTimeMillis, "content-length": 12345}
     )
     mockedBucket.name = "bucket"
