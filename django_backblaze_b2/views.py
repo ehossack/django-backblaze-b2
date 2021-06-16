@@ -43,7 +43,8 @@ def _downloadFileFromStorage(storage: storage.BackblazeB2Storage, filename: str)
 
     try:
         if storage.exists(filename):
-            return FileResponse(storage.open(filename, "r"), content_type=mimetypes.guess_type(filename))
+            contentType, _encoding = mimetypes.guess_type(filename)
+            return FileResponse(storage.open(filename, "r"), content_type=contentType)
     except (FileNotFoundError, FileNotPresent):
         logging.exception("Opening backblaze file failed")
 
