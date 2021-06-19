@@ -3,6 +3,7 @@ from typing import Dict, Optional, cast
 
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
+from typing_extensions import Literal
 
 from django_backblaze_b2.options import BackblazeB2StorageOptions, CDNConfig
 from django_backblaze_b2.storage import BackblazeB2Storage, logger
@@ -16,13 +17,18 @@ class PublicStorage(BackblazeB2Storage):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._bucketType: Optional[bool] = None
+        self._bucketType: Optional[Literal["allPublic", "allPrivate"]] = None
         self._cdnConfig: Optional[CDNConfig] = kwargs.get("opts", {}).get("cdnConfig")
 
     def _isPublicBucket(self) -> bool:
         if self._bucketType is None:
-            self._bucketType = self.bucket.as_dict().get("bucketType") == "allPublic"
-        return self._bucketType
+            bucketDict = self.bucket.as_dict()
+            if bucketDict.get("bucketType") is None:  # sometimes this happens due to cached values
+                logger.debug(f"Re-retrieving bucket info for {bucketDict}")
+                self._refreshBucket()
+                bucketDict = self.bucket.as_dict()
+            self._bucketType = bucketDict.get("bucketType")
+        return self._bucketType == "allPublic"
 
     def _getFileUrl(self, name: str) -> str:
         if not self._isPublicBucket():

@@ -82,17 +82,17 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         allowed,
         application_key_id,
     ):
-        self.cache.set("account_id", account_id)
-        self.cache.set("auth_token", auth_token)
-        self.cache.set("api_url", api_url)
-        self.cache.set("download_url", download_url)
-        self.cache.set("recommended_part_size", recommended_part_size)
-        self.cache.set("absolute_minimum_part_size", absolute_minimum_part_size)
-        self.cache.set("application_key", application_key)
-        self.cache.set("realm", realm)
-        self.cache.set("s3_api_url", s3_api_url)
-        self.cache.set("allowed", allowed)
-        self.cache.set("application_key_id", application_key_id)
+        self.cache.set("account_id", account_id, timeout=None)
+        self.cache.set("auth_token", auth_token, timeout=None)
+        self.cache.set("api_url", api_url, timeout=None)
+        self.cache.set("download_url", download_url, timeout=None)
+        self.cache.set("recommended_part_size", recommended_part_size, timeout=None)
+        self.cache.set("absolute_minimum_part_size", absolute_minimum_part_size, timeout=None)
+        self.cache.set("application_key", application_key, timeout=None)
+        self.cache.set("realm", realm, timeout=None)
+        self.cache.set("s3_api_url", s3_api_url, timeout=None)
+        self.cache.set("allowed", allowed, timeout=None)
+        self.cache.set("application_key_id", application_key_id, timeout=None)
 
     @_raise_missing_if_result_is_none
     def get_application_key(self):

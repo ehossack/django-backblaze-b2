@@ -149,6 +149,10 @@ class BackblazeB2Storage(Storage):
                 raise e
         logger.debug(f"Connected to bucket {self._bucket.as_dict()}")
 
+    def _refreshBucket(self) -> None:
+        self.b2Api.session.cache.clear()
+        self._getOrCreateBucket()
+
     def _open(self, name: str, mode: str) -> File:
         return B2File(
             name=name, bucket=self.bucket, fileMetadata=self._defaultFileMetadata, mode=mode, sizeProvider=self.size,

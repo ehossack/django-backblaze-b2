@@ -192,6 +192,33 @@ def test_generatesPublicFileUrlAsCDNUrlWithoutPath():
 
 
 @pytest.mark.django_db
+def test_generatesPublicFileWithRetryIfBucketTypeMissing(caplog):
+    caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
+    counter = 0
+
+    def getDict() -> dict:
+        nonlocal counter
+
+        counter += 1
+        if counter < 3:
+            return {}
+        return {"bucketType": "allPublic"}
+
+    with _mockedBucket(), mock.patch.object(bucket, "as_dict", side_effect=getDict), mock.patch.object(
+        B2Api,
+        "get_download_url_for_file_name",
+        side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+    ) as getDownloadUrl:
+        from django_backblaze_b2 import PublicStorage
+
+        storage = PublicStorage()
+
+        assert storage.url("some/file.jpeg") == "https://f000.backblazeb2.com/file/django/some/file.jpeg"
+        getDownloadUrl.assert_called_with(bucket_name="django", file_name="some/file.jpeg")
+        assert ("django-backblaze-b2", 10, f"Re-retrieving bucket info for {str({})}") in caplog.record_tuples
+
+
+@pytest.mark.django_db
 def test_canDownloadUsingPublicStorage(tempFile, client: Client):
     _mockFileDownload(tempFile)
     _mockFileDoesNotExist(tempFile)
