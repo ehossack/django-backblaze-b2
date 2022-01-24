@@ -3,7 +3,7 @@
 		run-django run-test-proj \
 		cleanup-docker run-sample-proj
 
-pyversions=$(shell cat .python-version) 3.6.12
+pyversions=$(shell cat .python-version)
 setup:
 	pyenv install -s $(firstword ${pyversions})
 	pip install -r requirements.txt
