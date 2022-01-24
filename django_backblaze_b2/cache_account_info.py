@@ -88,61 +88,70 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         allowed,
         application_key_id,
     ):
-        self.cache.set("account_id", account_id, timeout=None)
-        self.cache.set("auth_token", auth_token, timeout=None)
-        self.cache.set("api_url", api_url, timeout=None)
-        self.cache.set("download_url", download_url, timeout=None)
-        self.cache.set("recommended_part_size", recommended_part_size, timeout=None)
-        self.cache.set("absolute_minimum_part_size", absolute_minimum_part_size, timeout=None)
-        self.cache.set("application_key", application_key, timeout=None)
-        self.cache.set("realm", realm, timeout=None)
-        self.cache.set("s3_api_url", s3_api_url, timeout=None)
-        self.cache.set("allowed", allowed, timeout=None)
-        self.cache.set("application_key_id", application_key_id, timeout=None)
+        self.cache.set(
+            "cached_account_info",
+            {
+                "account_id": account_id,
+                "auth_token": auth_token,
+                "api_url": api_url,
+                "download_url": download_url,
+                "recommended_part_size": recommended_part_size,
+                "absolute_minimum_part_size": absolute_minimum_part_size,
+                "application_key": application_key,
+                "realm": realm,
+                "s3_api_url": s3_api_url,
+                "allowed": allowed,
+                "application_key_id": application_key_id,
+            },
+            timeout=None,
+        )
+
+    def _cached_info(self):
+        return self.cache.get("cached_account_info", default={})
 
     @_handle_result_is_none()
     def get_application_key(self):
-        return self.cache.get("application_key")
+        return self._cached_info().get("application_key")
 
     @_handle_result_is_none()
     def get_application_key_id(self):
-        return self.cache.get("application_key_id")
+        return self._cached_info().get("application_key_id")
 
     @_handle_result_is_none()
     def get_account_id(self):
-        return self.cache.get("account_id")
+        return self._cached_info().get("account_id")
 
     @_handle_result_is_none()
     def get_api_url(self):
-        return self.cache.get("api_url")
+        return self._cached_info().get("api_url")
 
     @_handle_result_is_none("auth_token")
     def get_account_auth_token(self):
         """Named different from cached value"""
-        return self.cache.get("auth_token")
+        return self._cached_info().get("auth_token")
 
     @_handle_result_is_none()
     def get_download_url(self):
-        return self.cache.get("download_url")
+        return self._cached_info().get("download_url")
 
     @_handle_result_is_none()
     def get_realm(self):
-        return self.cache.get("realm")
+        return self._cached_info().get("realm")
 
     @_handle_result_is_none()
     def get_absolute_minimum_part_size(self):
-        return self.cache.get("absolute_minimum_part_size")
+        return self._cached_info().get("absolute_minimum_part_size")
 
     @_handle_result_is_none()
     def get_recommended_part_size(self):
-        return self.cache.get("recommended_part_size")
+        return self._cached_info().get("recommended_part_size")
 
     @_handle_result_is_none()
     def get_allowed(self):
-        return self.cache.get("allowed")
+        return self._cached_info().get("allowed")
 
     def get_s3_api_url(self):
-        return self.cache.get("s3_api_url") or ""
+        return self._cached_info().get("s3_api_url") or ""
 
     def get_bucket_id_or_none_from_bucket_name(self, bucket_name: str) -> Optional[str]:
         try:
