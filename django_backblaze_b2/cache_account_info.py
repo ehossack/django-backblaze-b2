@@ -3,8 +3,8 @@ from functools import wraps
 from hashlib import sha3_224 as hash
 from typing import Iterable, Optional, Tuple
 
-from b2sdk.account_info.exception import MissingAccountData
 from b2sdk.account_info.upload_url_pool import UrlPoolAccountInfo
+from b2sdk.exception import InvalidAuthToken
 from django.core.cache import InvalidCacheBackendError, caches
 from django.core.exceptions import ImproperlyConfigured
 
@@ -16,21 +16,28 @@ class StoredBucketInfo:
     id_: str
 
 
-def _raise_missing_if_result_is_none(function):
+def _handle_result_is_none(item_name=None):
     """
     Raise MissingAccountData if function's result is None.
     adapted from https://github.com/Backblaze/b2-sdk-python/blob/v1.5.0/b2sdk/account_info/in_memory.py
     """
 
-    @wraps(function)
-    def getter_function(*args, **kwargs):
-        assert function.__name__.startswith("get_")
-        result = function(*args, **kwargs)
-        if result is None:
-            raise MissingAccountData(function.__name__[len("get_") :])
-        return result
+    def wrapper_factory(function):
+        @wraps(function)
+        def getter_function(self, *args, **kwargs):
+            assert function.__name__.startswith("get_")
+            result = function(self, *args, **kwargs)
+            if result is None:
+                self.cache.clear()
+                raise InvalidAuthToken(
+                    f"Token refresh required to determine value of '{item_name or function.__name__[len('get_') :]}'",
+                    code=401,
+                )
+            return result
 
-    return getter_function
+        return getter_function
+
+    return wrapper_factory
 
 
 class DjangoCacheAccountInfo(UrlPoolAccountInfo):
@@ -94,46 +101,44 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         self.cache.set("allowed", allowed, timeout=None)
         self.cache.set("application_key_id", application_key_id, timeout=None)
 
-    @_raise_missing_if_result_is_none
+    @_handle_result_is_none()
     def get_application_key(self):
         return self.cache.get("application_key")
 
-    @_raise_missing_if_result_is_none
+    @_handle_result_is_none()
     def get_application_key_id(self):
         return self.cache.get("application_key_id")
 
-    @_raise_missing_if_result_is_none
+    @_handle_result_is_none()
     def get_account_id(self):
         return self.cache.get("account_id")
 
-    @_raise_missing_if_result_is_none
+    @_handle_result_is_none()
     def get_api_url(self):
         return self.cache.get("api_url")
 
+    @_handle_result_is_none("auth_token")
     def get_account_auth_token(self):
         """Named different from cached value"""
-        auth_token = self.cache.get("auth_token")
-        if auth_token is None:
-            raise MissingAccountData("auth_token")
-        return auth_token
+        return self.cache.get("auth_token")
 
-    @_raise_missing_if_result_is_none
+    @_handle_result_is_none()
     def get_download_url(self):
         return self.cache.get("download_url")
 
-    @_raise_missing_if_result_is_none
+    @_handle_result_is_none()
     def get_realm(self):
         return self.cache.get("realm")
 
-    @_raise_missing_if_result_is_none
+    @_handle_result_is_none()
     def get_absolute_minimum_part_size(self):
         return self.cache.get("absolute_minimum_part_size")
 
-    @_raise_missing_if_result_is_none
+    @_handle_result_is_none()
     def get_recommended_part_size(self):
         return self.cache.get("recommended_part_size")
 
-    @_raise_missing_if_result_is_none
+    @_handle_result_is_none()
     def get_allowed(self):
         return self.cache.get("allowed")
 
