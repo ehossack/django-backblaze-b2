@@ -2,7 +2,7 @@ from typing import Dict
 from unittest import mock
 
 import pytest
-from b2sdk.account_info.exception import MissingAccountData
+from b2sdk.exception import InvalidAuthToken
 from django.core.exceptions import ImproperlyConfigured
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
 
@@ -33,55 +33,57 @@ def test_helpful_error_on_misconfiguration():
 def test_raises_if_attributes_are_none():
     cacheAccountInfo = DjangoCacheAccountInfo("test-cache")
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_account_id()
 
-    assert str(error.value) == "Missing account data: account_id"
+    assert str(error.value) == _auth_token_msg("Token refresh required to determine value of 'account_id'")
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_application_key()
 
-    assert str(error.value) == "Missing account data: application_key"
+    assert str(error.value) == _auth_token_msg("Token refresh required to determine value of 'application_key'")
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_application_key_id()
 
-    assert str(error.value) == "Missing account data: application_key_id"
+    assert str(error.value) == _auth_token_msg("Token refresh required to determine value of 'application_key_id'")
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_account_auth_token()
 
-    assert str(error.value) == "Missing account data: auth_token"
+    assert str(error.value) == _auth_token_msg("Token refresh required to determine value of 'auth_token'")
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_api_url()
 
-    assert str(error.value) == "Missing account data: api_url"
+    assert str(error.value) == _auth_token_msg("Token refresh required to determine value of 'api_url'")
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_download_url()
 
-    assert str(error.value) == "Missing account data: download_url"
+    assert str(error.value) == _auth_token_msg("Token refresh required to determine value of 'download_url'")
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_absolute_minimum_part_size()
 
-    assert str(error.value) == "Missing account data: absolute_minimum_part_size"
+    assert str(error.value) == _auth_token_msg(
+        "Token refresh required to determine value of 'absolute_minimum_part_size'"
+    )
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_recommended_part_size()
 
-    assert str(error.value) == "Missing account data: recommended_part_size"
+    assert str(error.value) == _auth_token_msg("Token refresh required to determine value of 'recommended_part_size'")
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_realm()
 
-    assert str(error.value) == "Missing account data: realm"
+    assert str(error.value) == _auth_token_msg("Token refresh required to determine value of 'realm'")
 
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_allowed()
 
-    assert str(error.value) == "Missing account data: allowed"
+    assert str(error.value) == _auth_token_msg("Token refresh required to determine value of 'allowed'")
 
     # notably, no error in default sqlite implementation
     assert cacheAccountInfo.get_s3_api_url() == ""
@@ -193,7 +195,7 @@ def test_can_clear_cache(allowed: Dict):
     cacheAccountInfo.clear()
 
     bucket_id_or_none = cacheAccountInfo.get_bucket_id_or_none_from_bucket_name("some-name")
-    with pytest.raises(MissingAccountData) as error:
+    with pytest.raises(InvalidAuthToken) as error:
         cacheAccountInfo.get_allowed()
 
     assert bucket_id_or_none is None
@@ -220,3 +222,7 @@ def test_can_perform_operation_after_cache_cleared():
         except Exception as e:
             failure = e
         assert failure is None
+
+
+def _auth_token_msg(message: str) -> str:
+    return str(InvalidAuthToken(message, code=401))
