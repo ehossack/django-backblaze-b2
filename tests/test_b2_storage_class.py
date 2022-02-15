@@ -1,19 +1,20 @@
+import hashlib
 import logging
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional
 from unittest import mock
 
 import pytest
 from b2sdk.account_info.exception import CorruptAccountInfo
 from b2sdk.api import B2Api, Bucket
 from b2sdk.exception import FileNotPresent, NonExistentBucket
-from b2sdk.file_version import FileVersionFactory
+from b2sdk.file_version import DownloadVersion, DownloadVersionFactory
 from django.core.exceptions import ImproperlyConfigured
 from django_backblaze_b2 import BackblazeB2Storage
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
 
-fileVersionFactory = FileVersionFactory(mock.create_autospec(spec=B2Api, name=f"Mock API for {__name__}"))
+downloadVersionFactory = DownloadVersionFactory(mock.create_autospec(spec=B2Api, name=f"Mock API for {__name__}"))
 
 
 def test_requiresConfiguration():
@@ -131,7 +132,12 @@ def test_cachedAccountInfo(settings):
         "application-key",
         "realm",
         "http://s3.api.url",
-        dict(bucketId=None, bucketName=None, capabilities=["readFiles"], namePrefix=None,),
+        dict(
+            bucketId=None,
+            bucketName=None,
+            capabilities=["readFiles"],
+            namePrefix=None,
+        ),
         "application-key-id",
     )
     cacheAccountInfo.save_bucket(bucket)
@@ -177,8 +183,8 @@ def test_urlRequiresName(settings):
 
 def test_get_available_nameWithOverwrites(settings):
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
-        headers={"id_": 1, "file_name": "some_name.txt"}
+    mockedBucket.get_file_info_by_name.return_value = _get_file_info_by_name_response(
+        1, "some_name.txt", fileSize=12345
     )
     mockedBucket.name = "bucket"
 
@@ -196,8 +202,8 @@ def test_get_available_nameWithOverwrites(settings):
 def test_get_created_time(settings):
     currentUTCTimeMillis = round(time.time() * 1000)
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
-        {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": str(currentUTCTimeMillis)}
+    mockedBucket.get_file_info_by_name.return_value = _get_file_info_by_name_response(
+        1, "some_name.txt", fileSize=12345, timestamp=currentUTCTimeMillis
     )
     mockedBucket.name = "bucket"
 
@@ -215,8 +221,8 @@ def test_get_created_time(settings):
 def test_get_modified_time(settings):
     currentUTCTimeMillis = round(time.time() * 1000)
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
-        {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": currentUTCTimeMillis}
+    mockedBucket.get_file_info_by_name.return_value = _get_file_info_by_name_response(
+        1, "some_name.txt", fileSize=12345, timestamp=currentUTCTimeMillis
     )
     mockedBucket.name = "bucket"
 
@@ -235,8 +241,8 @@ def test_get_modified_time(settings):
 def test_get_size_without_caching(settings):
     currentUTCTimeMillis = round(time.time() * 1000)
     mockedBucket = mock.Mock(spec=Bucket)
-    mockedBucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
-        {"id_": 1, "file_name": "some_name.txt", "x-bz-upload-timestamp": currentUTCTimeMillis, "content-length": 12345}
+    mockedBucket.get_file_info_by_name.return_value = _get_file_info_by_name_response(
+        1, "some_name.txt", fileSize=12345, timestamp=currentUTCTimeMillis
     )
     mockedBucket.name = "bucket"
 
@@ -299,3 +305,22 @@ def test_canUseSqliteAccountInfo(settings, tmpdir, caplog):
 
 def _settingsDict(config: Dict[str, Any]) -> Dict[str, Any]:
     return {"application_key_id": "---", "application_key": "---", **config}
+
+
+def _get_file_info_by_name_response(
+    fileId: str,
+    fileName: str,
+    fileSize: Optional[int],
+    timestamp: float = (datetime.now() - timedelta(hours=1)).timestamp(),
+) -> DownloadVersion:
+    return downloadVersionFactory.from_response_headers(
+        {
+            "x-bz-file-id": fileId,
+            "x-bz-file-name": fileName,
+            "Content-Length": fileSize,
+            # other required headers
+            "x-bz-content-sha1": hashlib.sha1(fileName.encode()),
+            "content-type": "text/plain",
+            "x-bz-upload-timestamp": timestamp,
+        }
+    )

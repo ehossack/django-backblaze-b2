@@ -2,7 +2,7 @@ from io import BytesIO
 from logging import getLogger
 from typing import IO, Any, Callable, Dict, Optional
 
-from b2sdk.v1 import Bucket, DownloadDestBytes
+from b2sdk.v2 import Bucket
 from django.core.files.base import File
 
 logger = getLogger("django-backblaze-b2")
@@ -12,7 +12,12 @@ class B2File(File):
     """Read/Write as lazy as possible"""
 
     def __init__(
-        self, name: str, bucket: Bucket, sizeProvider: Callable[[str], int], fileMetadata: Dict[str, Any], mode: str,
+        self,
+        name: str,
+        bucket: Bucket,
+        sizeProvider: Callable[[str], int],
+        fileMetadata: Dict[str, Any],
+        mode: str,
     ):
         self.name: str = name
         self._bucket: Bucket = bucket
@@ -26,8 +31,7 @@ class B2File(File):
     @property  # type: ignore
     def file(self) -> IO[Any]:  # type: ignore
         if self._contents is None:
-            data = self._readFileContents()
-            self._contents = BytesIO(data)
+            self._contents = self._readFileContents()
         return self._contents
 
     # https://github.com/python/mypy/issues/1465
@@ -35,10 +39,13 @@ class B2File(File):
     def file(self, value: IO[Any]) -> None:
         self._contents = value
 
-    def _readFileContents(self) -> bytes:
-        download_dest = DownloadDestBytes()
-        self._bucket.download_file_by_name(file_name=self.name, download_dest=download_dest)
-        return download_dest.get_bytes_written()
+    def _readFileContents(self) -> BytesIO:
+        downloadingFile = self._bucket.download_file_by_name(file_name=self.name)
+        bytesIO = BytesIO()
+        downloadingFile.save(bytesIO)
+        contents = BytesIO(bytesIO.getvalue())
+        bytesIO.close()
+        return contents
 
     @property
     def size(self) -> int:
@@ -69,7 +76,9 @@ class B2File(File):
         """
         logger.debug(f"Saving {self.name} to b2 bucket ({self._bucket.get_id()})")
         self._bucket.upload_bytes(
-            data_bytes=content.read(), file_name=self.name, file_infos=self._fileMetadata,
+            data_bytes=content.read(),
+            file_name=self.name,
+            file_infos=self._fileMetadata,
         )
         self._hasUnwrittenData = False
         return self.name
