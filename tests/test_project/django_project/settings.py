@@ -128,3 +128,5 @@ CACHES: Dict[str, Any] = {
     "test-cache": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
     "django-backblaze-b2": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"},
 }
+
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"

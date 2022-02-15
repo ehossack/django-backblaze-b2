@@ -1,12 +1,16 @@
+import datetime
+import hashlib
 import logging
 from contextlib import contextmanager
+from io import IOBase
 from typing import Callable, Optional
 from unittest import mock
 
 import pytest
 from b2sdk.api import B2Api, Bucket
 from b2sdk.exception import FileNotPresent
-from b2sdk.file_version import FileVersionFactory
+from b2sdk.file_version import DownloadVersion, DownloadVersionFactory
+from b2sdk.transfer.inbound.downloaded_file import DownloadedFile
 from django.contrib.auth.models import User
 from django.core.files import File
 from django.http import FileResponse
@@ -15,7 +19,7 @@ from django_backblaze_b2 import __version__
 
 bucket = mock.create_autospec(spec=Bucket, name=f"Mock Bucket for {__name__}")
 bucket.name = "bucketname"
-fileVersionFactory = FileVersionFactory(mock.create_autospec(spec=B2Api, name=f"Mock API for {__name__}"))
+downloadVersionFactory = DownloadVersionFactory(mock.create_autospec(spec=B2Api, name=f"Mock API for {__name__}"))
 
 
 def test_version():
@@ -50,7 +54,9 @@ def test_uploadsBytesToBucket(tempFile):
         assert filesObject.b2StorageFile.url == "http://randonneurs.bc.ca"
         tempFile.seek(0)
         bucket.upload_bytes.assert_called_with(
-            data_bytes=tempFile.read(), file_name=f"uploads/{tempFile.name}", file_infos={},
+            data_bytes=tempFile.read(),
+            file_name=f"uploads/{tempFile.name}",
+            file_infos={},
         )
         getDownloadUrl.assert_called_with(bucket_name="django", file_name=f"uploads/{tempFile.name}")
 
@@ -80,7 +86,9 @@ def test_worksWithFieldFileWriteOperation(tempFile):
             f.write("new-contents".encode("utf-8"))
 
         bucket.upload_bytes.assert_called_with(
-            data_bytes=b"new-contents", file_name=f"uploads/{tempFile.name}", file_infos={},
+            data_bytes=b"new-contents",
+            file_name=f"uploads/{tempFile.name}",
+            file_infos={},
         )
 
 
@@ -367,10 +375,12 @@ def _mockedBucket():
 
 
 @contextmanager
-def _fileInfo(size: Optional[int] = None, id: str = "someId", doesFileExist: Callable[[], bool] = None):
+def _fileInfo(
+    size: Optional[int] = None, id: str = "someId", name: str = "someFile", doesFileExist: Callable[[], bool] = None
+):
     def existOrThrow():
         if doesFileExist():
-            return fileVersionFactory.from_response_headers({"id": id, "content-length": size})
+            return _get_file_info_by_name_response(id, name, size)
         raise FileNotPresent()
 
     if doesFileExist is None:
@@ -391,14 +401,18 @@ def _getFileFromNewFilesModelObject(tempFile: File) -> File:
 
 
 def _mockFileDownload(tempFile: File) -> None:
-    def downloadByName(file_name, download_dest):
-        if file_name.endswith(tempFile.name):
-            tempFile.seek(0)
-            download_dest.bytes_written = tempFile.read()
-            tempFile.seek(0)
-            return None
+    def downloadFileFactory(file_name):
+        downloadedFile = mock.create_autospec(spec=DownloadedFile, name=f"Mock download for {__name__}")
 
-    bucket.download_file_by_name.side_effect = downloadByName
+        def saveIntoBytes(file: IOBase, allow_seeking: bool = True):
+            tempFile.seek(0)
+            file.write(tempFile.read())
+            tempFile.seek(0)
+
+        downloadedFile.save.side_effect = saveIntoBytes
+        return downloadedFile
+
+    bucket.download_file_by_name.side_effect = downloadFileFactory
 
 
 def _mockFileDoesNotExist(tempFile: File) -> None:
@@ -407,6 +421,18 @@ def _mockFileDoesNotExist(tempFile: File) -> None:
 
 def _mockFileExists(tempFile: File, b2FileId: str = "someId") -> None:
     bucket.get_file_info_by_name.side_effect = None
-    bucket.get_file_info_by_name.return_value = fileVersionFactory.from_response_headers(
-        {"x-bz-file-id": b2FileId, "content-length": tempFile.size}
+    bucket.get_file_info_by_name.return_value = _get_file_info_by_name_response(b2FileId, tempFile.name, tempFile.size)
+
+
+def _get_file_info_by_name_response(fileId: str, fileName: str, fileSize: Optional[int]) -> DownloadVersion:
+    return downloadVersionFactory.from_response_headers(
+        {
+            "x-bz-file-id": fileId,
+            "x-bz-file-name": fileName,
+            "Content-Length": fileSize,
+            # other required headers
+            "x-bz-content-sha1": hashlib.sha1(fileName.encode()),
+            "content-type": "text/plain",
+            "x-bz-upload-timestamp": (datetime.datetime.now() - datetime.timedelta(hours=1)).timestamp(),
+        }
     )

@@ -6,9 +6,9 @@ from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
 from b2sdk.account_info import InMemoryAccountInfo
 from b2sdk.account_info.abstract import AbstractAccountInfo
 from b2sdk.account_info.sqlite_account_info import SqliteAccountInfo
-from b2sdk.api import B2Api, Bucket
 from b2sdk.cache import AuthInfoCache
 from b2sdk.exception import FileOrBucketNotFound, NonExistentBucket
+from b2sdk.v2 import B2Api, Bucket
 from django.core.cache.backends.base import BaseCache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
@@ -149,13 +149,18 @@ class BackblazeB2Storage(Storage):
                 raise e
         logger.debug(f"Connected to bucket {self._bucket.as_dict()}")
 
-    def _refreshBucket(self) -> None:
-        self.b2Api.session.cache.clear()
-        self._getOrCreateBucket()
+    def _refreshBucket(self) -> Bucket:
+        if self._bucket:
+            return self._bucket.get_fresh_state()
+        return self.bucket
 
     def _open(self, name: str, mode: str) -> File:
         return B2File(
-            name=name, bucket=self.bucket, fileMetadata=self._defaultFileMetadata, mode=mode, sizeProvider=self.size,
+            name=name,
+            bucket=self.bucket,
+            fileMetadata=self._defaultFileMetadata,
+            mode=mode,
+            sizeProvider=self.size,
         )
 
     def _save(self, name: str, content: IO[Any]) -> str:
@@ -164,7 +169,11 @@ class BackblazeB2Storage(Storage):
         If the file exists it will make another version of that file.
         """
         return B2File(
-            name=name, bucket=self.bucket, fileMetadata=self._defaultFileMetadata, mode="w", sizeProvider=self.size,
+            name=name,
+            bucket=self.bucket,
+            fileMetadata=self._defaultFileMetadata,
+            mode="w",
+            sizeProvider=self.size,
         ).saveAndRetrieveFile(content)
 
     def path(self, name: str) -> str:

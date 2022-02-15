@@ -36,4 +36,7 @@
     ".mypy_cache": true,
     ".venv": true
   },
+  "cSpell.words": [
+    "deconstructible"
+  ],
 }

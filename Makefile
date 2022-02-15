@@ -28,7 +28,7 @@ format:
 	poetry run black .
 
 test: tests/test_project/files/migrations/0001_initial.py
-	poetry run pytest tests
+	poetry run pytest tests --maxfail=2
 
 test-verbose: tests/test_project/files/migrations/0001_initial.py
 	PYTEST_ADDOPTS="-vv" make test
