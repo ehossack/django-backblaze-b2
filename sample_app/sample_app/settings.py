@@ -15,7 +15,10 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List
 
+from django.core.management.utils import get_random_secret_key
 from django.utils.log import DEFAULT_LOGGING
+
+SECONDS_TO_RUN_APP = int(os.getenv("SECONDS_TO_RUN_APP", "7"))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "c453j9c0=26c3oiy_$_v$__wr9%n$1ubem0wuo_0zf=_*2ni1!"
+SECRET_KEY = get_random_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -146,3 +149,5 @@ LOGGING: Dict[str, Any] = {
     },
 }
 LOGIN_URL = "/admin/login"
+
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
