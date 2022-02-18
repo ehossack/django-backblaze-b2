@@ -30,7 +30,7 @@ BACKBLAZE_CONFIG = {
 }
 ```
 
-Theoretically you may now refer to the base storage class as a storage class (see the sample app for some usage).
+Theoretically you may now refer to the base storage class as a storage class (see the sample app for some usage: you can run with `make run-sample-proj` although you might want to configure the `SECONDS_TO_RUN_APP` variable in `settings.env` to be 0 for unlimited to try things out)
 e.g.
 ```python
 from django_backblaze_b2 import BackblazeB2Storage

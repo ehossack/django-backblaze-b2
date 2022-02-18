@@ -3,6 +3,20 @@ version: 2.1
 orbs:
   python: circleci/python@1.2.1
 
+commands:
+  early_return_for_forked_pull_requests:
+    description: >-
+      If this build is from a fork, stop executing the current job and return success.
+      This is useful to avoid steps that will fail due to missing credentials.
+    steps:
+      - run:
+          name: Early return if this build is from a forked PR
+          command: |
+            if [ -n "$CIRCLE_PR_NUMBER" ]; then
+              echo "Nothing to do for forked PRs, so marking this step successful"
+              circleci step halt
+            fi
+
 jobs:
   build-and-test:
     machine: true
@@ -15,6 +29,14 @@ jobs:
           path: tests/test-results
       - store_artifacts:
           path: tests/htmlcov
+      - early_return_for_forked_pull_requests
+      - run:
+          command: |
+            echo "BACKBLAZE_BUCKET=${TEST_BUCKET}" >> sample_app/sample_app/settings.env
+            echo "BACKBLAZE_APPLICATION_KEY_ID=${TEST_BACKBLAZE_APPLICATION_KEY_ID}" >> sample_app/sample_app/settings.env
+            echo "BACKBLAZE_APPLICATION_KEY=${TEST_BACKBLAZE_APPLICATION_KEY}" >> sample_app/sample_app/settings.env
+            make run-sample-proj
+          name: Sanity check with sample proj
 
 workflows:
   main:
