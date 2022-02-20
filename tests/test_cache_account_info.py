@@ -9,7 +9,12 @@ from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
 
 @pytest.fixture
 def allowed() -> Dict:
-    return dict(bucketId=None, bucketName=None, capabilities=["readFiles"], namePrefix=None,)
+    return dict(
+        bucketId=None,
+        bucketName=None,
+        capabilities=["readFiles"],
+        namePrefix=None,
+    )
 
 
 @pytest.fixture(autouse=True)
