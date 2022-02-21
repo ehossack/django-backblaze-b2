@@ -1,7 +1,8 @@
 .PHONY: setup cleanup lint format \
 		test test-verbose test-coverage clean-django-files \
 		run-django run-test-proj \
-		cleanup-docker run-sample-proj
+		cleanup-docker run-sample-proj \
+		publish-to-pypi release
 
 pyversions=$(shell cat .python-version)
 setup:
@@ -116,10 +117,20 @@ run-sample-proj:
 		--env-file sample_app/sample_app/settings.env \
 		-it b2-django-sample:dev
 
+release: publish-to-pypi
+	gh release create ${PROJ_VERSION} --notes '${VER_DESCRIPTION}'
+
 publish-to-pypi:
 	$(eval VER_DESCRIPTION = $(shell bash -c 'read -p "Release Description: " desc; echo $$desc'))
 	$(eval PROJ_VERSION = $(shell poetry run python -c "import toml; print(toml.load('pyproject.toml')['tool']['poetry']['version'])"))
-	git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}'
+	@if git show-ref --tags ${PROJ_VERSION} --quiet; then \
+		echo "tag for ${PROJ_VERSION} exists, delete it? [y/N] " && \
+		read ans && [ $${ans:-N} = y ] && \
+		git tag -d ${PROJ_VERSION} && \
+		git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}'; \
+	else \
+		git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}'; \
+	fi
 	git push -f origin refs/tags/${PROJ_VERSION}
 	rm -rf dist
 	poetry build
