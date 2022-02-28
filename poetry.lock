@@ -48,7 +48,7 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "b2sdk"
-version = "1.14.0"
+version = "1.14.1"
 description = "Backblaze B2 SDK"
 category = "main"
 optional = false
@@ -605,7 +605,7 @@ attrs = [
     {file = "attrs-21.4.0.tar.gz", hash = "sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd"},
 ]
 b2sdk = [
-    {file = "b2sdk-1.14.0.tar.gz", hash = "sha256:900da60f9e569e02405b85db35541a79e1cac776ace5d054498b107982ea443c"},
+    {file = "b2sdk-1.14.1.tar.gz", hash = "sha256:7d839eca12a6f66453eb535c41569714a7910bc012f657c864c3bfb3a88569e8"},
 ]
 black = [
     {file = "black-22.1.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:1297c63b9e1b96a3d0da2d85d11cd9bf8664251fd69ddac068b98dc4f34f73b6"},
