@@ -51,21 +51,35 @@ test-output-coverage: tests/test_project/files/migrations/0001_initial.py
 
 deps_and_test = apt-get update && \
 				apt-get install -y build-essential && \
-					cd app && make in-docker-test
+					cd app && make install-reqs-and-test
 test-ci:
 	@echo "Running tests and lint on python $(firstword ${pyversions})"
 	docker run --rm -v `pwd`:/app \
-		-it python:$(firstword ${pyversions})-slim \
+		python:$(firstword ${pyversions})-slim \
 		/bin/sh -c "${deps_and_test} && make lint"
 	@echo "Running tests on python $(wordlist 2,99,${pyversions})"
-	for version in $(wordlist 2,99,${pyversions}); do \
-		docker run --rm \
-			-v `pwd`:/app \
-			-it python:$${version}-slim \
-			/bin/sh -c "${deps_and_test}"; \
-		done
+	$(MAKE) -j $(addprefix run-test-in-docker-python-,$(wordlist 2,99,${pyversions}))
 
-in-docker-test:
+define TEST_DOCKERFILE
+ARG PYTHON_VER
+FROM python:$${PYTHON_VER}
+COPY . /app
+RUN apt-get update && apt-get install -y build-essential
+CMD cd /app && make install-reqs-and-test
+endef
+export TEST_DOCKERFILE
+
+run-test-in-docker-python-%:
+	@echo "$$TEST_DOCKERFILE" | docker build -tdjango-backblaze-b2-tests:python-$* --build-arg PYTHON_VER=$* -f- . 
+	bash -c "trap 'docker image rm django-backblaze-b2-tests:python-$*' EXIT; docker run --rm django-backblaze-b2-tests:python-$*"
+
+unused:
+	docker run --rm \
+		-v `pwd`:/app \
+		python:$*-slim \
+		/bin/sh -c "${deps_and_test}"
+
+install-reqs-and-test:
 	pip install -r requirements.txt
 	poetry config virtualenvs.create false
 	poetry install
