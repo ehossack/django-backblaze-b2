@@ -58,7 +58,7 @@ flake8 = "^4.0"
 pytest-cov = "^3.0"
 pytest-django = "^4.5"
 pytest-pythonpath = "^0.7"
-docutils = "^0.18"
+docutils = "^0.19"
 
 [build-system]
 requires = ["poetry>=0.12"]
