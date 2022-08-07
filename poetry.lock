@@ -48,21 +48,21 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "b2sdk"
-version = "1.14.1"
+version = "1.17.3"
 description = "Backblaze B2 SDK"
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-arrow = {version = ">=1.0.2,<2.0.0", markers = "python_version >= \"3.6\""}
-importlib-metadata = {version = ">=3.3.0", markers = "python_version > \"3.5\" and python_version < \"3.8\""}
+arrow = ">=1.0.2,<2.0.0"
+importlib-metadata = {version = ">=3.3.0", markers = "python_version < \"3.8\""}
 logfury = ">=1.0.1,<2.0.0"
 requests = ">=2.9.1,<3.0.0"
 tqdm = ">=4.5.0,<5.0.0"
 
 [package.extras]
-doc = ["sadisplay", "sphinx-autobuild", "sphinx-rtd-theme", "sphinxcontrib-plantuml", "sphinx (<4.0)", "sphinx (<5.0)"]
+doc = ["sadisplay", "sphinx (<6.0)", "sphinx-autobuild", "sphinx-rtd-theme", "sphinxcontrib-plantuml"]
 
 [[package]]
 name = "black"
@@ -601,7 +601,7 @@ attrs = [
     {file = "attrs-21.4.0.tar.gz", hash = "sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd"},
 ]
 b2sdk = [
-    {file = "b2sdk-1.14.1.tar.gz", hash = "sha256:7d839eca12a6f66453eb535c41569714a7910bc012f657c864c3bfb3a88569e8"},
+    {file = "b2sdk-1.17.3.tar.gz", hash = "sha256:a723e38dd43cc33bd08ad95c84695f3533f0aacd0f1fac60a6548f516a63b703"},
 ]
 black = [
     {file = "black-22.6.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:f586c26118bc6e714ec58c09df0157fe2d9ee195c764f630eb0d8e7ccce72e69"},
