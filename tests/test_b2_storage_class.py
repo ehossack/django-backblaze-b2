@@ -319,7 +319,7 @@ def _get_file_info_by_name_response(
             "x-bz-file-name": fileName,
             "Content-Length": fileSize,
             # other required headers
-            "x-bz-content-sha1": hashlib.sha1(fileName.encode()),
+            "x-bz-content-sha1": hashlib.sha1(fileName.encode()).hexdigest(),
             "content-type": "text/plain",
             "x-bz-upload-timestamp": timestamp,
         }
