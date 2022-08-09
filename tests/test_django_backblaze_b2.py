@@ -421,7 +421,9 @@ def _mockFileDoesNotExist(tempFile: File) -> None:
 
 def _mockFileExists(tempFile: File, b2FileId: str = "someId") -> None:
     bucket.get_file_info_by_name.side_effect = None
-    bucket.get_file_info_by_name.return_value = _get_file_info_by_name_response(b2FileId, tempFile.name, tempFile.size)
+    bucket.get_file_info_by_name.return_value = _get_file_info_by_name_response(
+        b2FileId, tempFile.name or "tempFile", tempFile.size
+    )
 
 
 def _get_file_info_by_name_response(fileId: str, fileName: str, fileSize: Optional[int]) -> DownloadVersion:

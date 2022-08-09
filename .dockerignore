@@ -10,11 +10,11 @@ dist
 
 .tox
 .coverage
-htmlcov/
-.mypy_cache/
-.pytest_cache/
-.venv/
-.vscode/
+htmlcov
+.mypy_cache
+.pytest_cache
+.venv
+.vscode
 
 __pycache__
 
