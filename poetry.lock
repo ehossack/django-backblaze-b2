@@ -48,7 +48,7 @@ tests_no_zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy"
 
 [[package]]
 name = "b2sdk"
-version = "1.17.3"
+version = "1.18.0"
 description = "Backblaze B2 SDK"
 category = "main"
 optional = false
@@ -609,7 +609,7 @@ attrs = [
     {file = "attrs-21.4.0.tar.gz", hash = "sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd"},
 ]
 b2sdk = [
-    {file = "b2sdk-1.17.3.tar.gz", hash = "sha256:a723e38dd43cc33bd08ad95c84695f3533f0aacd0f1fac60a6548f516a63b703"},
+    {file = "b2sdk-1.18.0.tar.gz", hash = "sha256:9272f28d18d498b66d33d749a0f05e49d9bb1a9134f94261c0b8bfa1b56f3eec"},
 ]
 black = [
     {file = "black-22.8.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ce957f1d6b78a8a231b18e0dd2d94a33d2ba738cd88a7fe64f53f659eea49fdd"},
