@@ -50,7 +50,7 @@ typing-extensions = "^4.0.1"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
-pytest = "^7.1"
+pytest = "^7.2"
 mypy = ">=0.8"
 black = "^22.10"
 django-stubs = "^1.12.0"
