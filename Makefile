@@ -2,13 +2,16 @@
 		test test-verbose test-coverage clean-django-files \
 		run-django run-test-proj \
 		cleanup-docker run-sample-proj \
-		publish-to-pypi release
+		publish-to-pypi release require-var-%
 
 pyversions=$(shell cat .python-version)
 setup:
 	pyenv install -s $(firstword ${pyversions})
 	pip install -r requirements.txt
 	poetry install --sync
+
+require-var-%:
+	@if [ -z '${${*}}' ]; then echo 'ERROR: variable $* not set' && exit 1; fi
 
 cleanup: clean-django-files cleanup-docker
 	- poetry env remove python
@@ -136,7 +139,7 @@ run-sample-proj:
 release: publish-to-pypi
 	gh release create ${PROJ_VERSION} --notes '${VER_DESCRIPTION}'
 
-publish-to-pypi:
+publish-to-pypi: require-var-pypi_user require-var-pypi_pw
 	$(eval VER_DESCRIPTION = $(shell bash -c 'read -p "Release Description: " desc; echo $$desc'))
 	$(eval PROJ_VERSION = $(shell poetry run python -c "import toml; print(toml.load('pyproject.toml')['tool']['poetry']['version'])"))
 	@if git show-ref --tags ${PROJ_VERSION} --quiet; then \
@@ -149,5 +152,4 @@ publish-to-pypi:
 	fi
 	git push -f origin refs/tags/${PROJ_VERSION}
 	rm -rf dist
-	poetry build
-	poetry publish
+	poetry publish --build --username ${pypi_user} --password ${pypi_pw}
