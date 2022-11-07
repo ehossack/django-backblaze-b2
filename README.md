@@ -11,7 +11,7 @@ Implementation wraps [Official Python SDK](https://github.com/Backblaze/b2-sdk-p
 ## How to use
 
 1. Install from this repo, or install from PyPi: `pip install django-backblaze-b2`
-As tested, requires python 3.6 or greater but solely due to type annotations. PRs welcome :)
+As tested, requires python 3.7 or greater but solely due to type annotations. PRs welcome :)
 1. Configure your django `settings`. A minimalistic config would be:
 ```python
 CACHES = {
@@ -139,6 +139,7 @@ Contributions welcome!
 
 | Ver  | Status   |  EOL       |
 | ---- | -------- | ---------- |
+| 3.11 | buffix   | 2027-10    |
 | 3.10 | bugfix   | 2026-10    |
 | 3.9  | bugfix   | 2025-10    |
 | 3.8  | bugfix   | 2024-10    |

@@ -25,6 +25,8 @@ classifiers = [
     "Framework :: Django :: 3.1",
     "Framework :: Django :: 3.2",
     "Framework :: Django :: 4.0",
+    "Framework :: Django :: 4.1",
+    "Framework :: Django :: 4.2",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
@@ -35,6 +37,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Development Status :: 5 - Production/Stable",
     "Typing :: Typed",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
@@ -45,7 +48,7 @@ include = ["py.typed"]
 [tool.poetry.dependencies]
 python = "^3.7.1"
 b2sdk = ">=1.11.0"
-django = ">=3.0"
+django = ">=3.2"
 typing-extensions = "^4.0.1"
 
 [tool.poetry.dev-dependencies]
@@ -62,5 +65,5 @@ docutils = "^0.19"
 toml = "^0.10.2"
 
 [build-system]
-requires = ["poetry>=0.12"]
+requires = ["poetry>=1.2.0"]
 build-backend = "poetry.masonry.api"
