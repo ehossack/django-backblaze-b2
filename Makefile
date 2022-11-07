@@ -142,6 +142,7 @@ release: publish-to-pypi
 publish-to-pypi: require-var-pypi_user require-var-pypi_pw
 	$(eval VER_DESCRIPTION = $(shell bash -c 'read -p "Release Description: " desc; echo $$desc'))
 	$(eval PROJ_VERSION = $(shell poetry run python -c "import toml; print(toml.load('pyproject.toml')['tool']['poetry']['version'])"))
+	poetry publish --build --dry-run --username ${pypi_user} --password ${pypi_pw}
 	@if git show-ref --tags ${PROJ_VERSION} --quiet; then \
 		echo "tag for ${PROJ_VERSION} exists, delete it? [y/N] " && \
 		read ans && [ $${ans:-N} = y ] && \
