@@ -8,7 +8,7 @@ pyversions=$(shell cat .python-version)
 setup:
 	pyenv install -s $(firstword ${pyversions})
 	pip install -r requirements.txt
-	poetry install --remove-untracked
+	poetry install --sync
 
 cleanup: clean-django-files cleanup-docker
 	- poetry env remove python
@@ -104,15 +104,17 @@ cleanup-docker:
 	fi
 
 define DOCKERFILE
-FROM python:3.9
+FROM python:3.11
 COPY requirements.txt poetry.* pyproject.toml ./
 RUN pip install -r requirements.txt
 RUN poetry config virtualenvs.create false && poetry install
+RUN sed -i 's/python = "^3.7.1"/python = "^3.11.0"/g' pyproject.toml && \
+	poetry add django@latest
 COPY django_backblaze_b2 ./django_backblaze_b2
 COPY setup.* README.md ./
 RUN poetry build && \
-	mv dist/django-backblaze-b2*.tar.gz dist/django-backblaze-b2.tar.gz && \
-	pip install dist/django-backblaze-b2.tar.gz && \
+	mv dist/django_backblaze_b2*.tar.gz dist/django_backblaze_b2.tar.gz && \
+	pip install dist/django_backblaze_b2.tar.gz && \
 	rm -rf django_backblaze_b2
 COPY sample_app ./sample_app
 EXPOSE 8000

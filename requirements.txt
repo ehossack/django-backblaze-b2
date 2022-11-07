@@ -1,2 +1,1 @@
-poetry>=1.1.13
-poetry-core>=1.1.0a7 # not directly required, pinned by Snyk to avoid a vulnerability
+poetry>=1.2.0
