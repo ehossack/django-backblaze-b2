@@ -51,7 +51,7 @@ django = ">=3.2"
 typing-extensions = "^4.0.1"
 
 [tool.poetry.dev-dependencies]
-isort = "^5.4.2"
+isort = "^5.11.5"
 pytest = "^7.2"
 mypy = ">=0.8"
 black = "^22.10"
