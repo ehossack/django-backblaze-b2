@@ -263,14 +263,14 @@ bcrypt = ["bcrypt"]
 
 [[package]]
 name = "django-stubs"
-version = "1.13.1"
+version = "1.14.0"
 description = "Mypy stubs for Django"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "django-stubs-1.13.1.tar.gz", hash = "sha256:bcc618ba353dabc540d982b9dac1d5a1921652f8fc2a13653d545a57d5e3cc0f"},
-    {file = "django_stubs-1.13.1-py3-none-any.whl", hash = "sha256:fbf2ee6a4bce76c3eb5f6707ccadb4cf1c2f1ec485e8c44701ca8de2d0a5df18"},
+    {file = "django-stubs-1.14.0.tar.gz", hash = "sha256:d53bcd4975a54ca5c9abbbd33b61f40d44191971018f2ea54f73b0a6a99e1a8b"},
+    {file = "django_stubs-1.14.0-py3-none-any.whl", hash = "sha256:b081d64d923171f79d4e57899b0980da847e4046b91166e3658a6151645a36c5"},
 ]
 
 [package.dependencies]
@@ -283,7 +283,7 @@ types-PyYAML = "*"
 typing-extensions = "*"
 
 [package.extras]
-compatible-mypy = ["mypy (>=0.980,<0.990)"]
+compatible-mypy = ["mypy (>=0.991,<1.0)"]
 
 [[package]]
 name = "django-stubs-ext"
@@ -891,4 +891,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7.1"
-content-hash = "b245b52c5bee31f0b4804fd6a1c9e4ab672487fd680e0c54c7ce7d3fe44e9631"
+content-hash = "6ef87d942da377e7b7a60b04a1a3c7425faebb3dea051abcb7446db513cf0dda"
