@@ -219,7 +219,6 @@ def test_can_perform_operation_after_cache_cleared():
         lambda: cacheAccountInfo.save_bucket(bucket),
         lambda: cacheAccountInfo.remove_bucket_name("non-extant"),
     ]:
-
         cacheAccountInfo.clear()
 
         failure = None

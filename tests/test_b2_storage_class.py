@@ -19,7 +19,6 @@ downloadVersionFactory = DownloadVersionFactory(mock.create_autospec(spec=B2Api,
 
 def test_requiresConfiguration():
     with mock.patch("django.conf.settings", {}):
-
         with pytest.raises(ImproperlyConfigured) as error:
             BackblazeB2Storage()
 
@@ -28,7 +27,6 @@ def test_requiresConfiguration():
 
 def test_requiresConfigurationForAuth(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", {}):
-
         with pytest.raises(ImproperlyConfigured) as error:
             BackblazeB2Storage()
 
@@ -50,7 +48,6 @@ def test_complainsWithUnrecognizedOptions(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name"):
-
         with pytest.raises(ImproperlyConfigured) as error:
             BackblazeB2Storage(opts={"unrecognized": "option"})
 
@@ -81,7 +78,6 @@ def test_defaultsToNotCreatingBucket(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket):
-
         with pytest.raises(NonExistentBucket):
             BackblazeB2Storage(opts={})
 
@@ -94,7 +90,6 @@ def test_canCreateBucket(settings):
     ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket), mock.patch.object(
         B2Api, "create_bucket"
     ):
-
         BackblazeB2Storage(opts={"nonExistentBucketDetails": {}})
 
         B2Api.get_bucket_by_name.assert_called_once_with("django")
@@ -105,7 +100,6 @@ def test_lazyAuthorization(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name"):
-
         storage = BackblazeB2Storage(opts={"authorizeOnInit": False})
         B2Api.authorize_account.assert_not_called()
         B2Api.get_bucket_by_name.assert_not_called()
@@ -145,7 +139,6 @@ def test_cachedAccountInfo(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "list_buckets"):
-
         BackblazeB2Storage(opts={"accountInfo": {"type": "django-cache", "cache": cacheName}})
 
         B2Api.list_buckets.assert_not_called()
@@ -155,7 +148,6 @@ def test_lazyBucketNonExistent(settings):
     with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settingsDict({})), mock.patch.object(
         B2Api, "authorize_account"
     ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket):
-
         storage = BackblazeB2Storage(opts={"validateOnInit": False})
         B2Api.get_bucket_by_name.assert_not_called()
 
@@ -295,7 +287,6 @@ def test_canUseSqliteAccountInfo(settings, tmpdir, caplog):
     with mock.patch.object(
         settings, "BACKBLAZE_CONFIG", _settingsDict({"accountInfo": {"type": "sqlite", "databasePath": str(tempFile)}})
     ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name"):
-
         with pytest.raises(CorruptAccountInfo) as error:
             BackblazeB2Storage(opts={})
 

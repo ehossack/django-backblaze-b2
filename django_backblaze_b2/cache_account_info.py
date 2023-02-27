@@ -173,7 +173,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
 
     def refresh_entire_bucket_name_cache(self, name_id_iterable: Iterable[Tuple[str, str]]):
         bucket_names_to_remove = set(self.cache.get("bucket_names", [])) - {name for name, id in name_id_iterable}
-        for (bucket_name, bucket_id) in name_id_iterable:
+        for bucket_name, bucket_id in name_id_iterable:
             self.cache.set(_bucket_cachekey(bucket_name), bucket_id)
         for bucket_name in bucket_names_to_remove:
             self.remove_bucket_name(bucket_name)
