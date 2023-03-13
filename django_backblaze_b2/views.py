@@ -9,42 +9,44 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 from django_backblaze_b2 import storage, storages
 
-from ._decorators import requiresLogin
+from ._decorators import _requires_login
 
 logger = logging.getLogger("django-backblaze-b2")
 
 
 @xframe_options_sameorigin
-def downloadPublicFile(request: HttpRequest, filename: str) -> Union[HttpResponse, FileResponse]:
+def download_public_file(request: HttpRequest, filename: str) -> Union[HttpResponse, FileResponse]:
     """Serves the specified 'filename' without validating any authentication"""
-    return _downloadFileFromStorage(storages.PublicStorage(), filename)
+    return _download_file_from_storage(storages.PublicStorage(), filename)
 
 
-@requiresLogin()
+@_requires_login()
 @xframe_options_sameorigin
-def downloadLoggedInFile(request: HttpRequest, filename: str) -> Union[HttpResponse, FileResponse]:
+def download_logged_in_file(request: HttpRequest, filename: str) -> Union[HttpResponse, FileResponse]:
     """Serves the specified 'filename' validating the user is logged in"""
-    return _downloadFileFromStorage(storages.LoggedInStorage(), filename)
+    return _download_file_from_storage(storages.LoggedInStorage(), filename)
 
 
-@requiresLogin(requiresStaff=True)
+@_requires_login(requires_staff=True)
 @xframe_options_sameorigin
-def downloadStaffFile(request: HttpRequest, filename: str) -> Union[HttpResponse, FileResponse]:
+def download_staff_file(request: HttpRequest, filename: str) -> Union[HttpResponse, FileResponse]:
     """Serves the specified 'filename' validating the user is logged in and a staff user"""
-    return _downloadFileFromStorage(storages.StaffStorage(), filename)
+    return _download_file_from_storage(storages.StaffStorage(), filename)
 
 
-def _downloadFileFromStorage(storage: storage.BackblazeB2Storage, filename: str) -> Union[HttpResponse, FileResponse]:
+def _download_file_from_storage(
+    storage: storage.BackblazeB2Storage, filename: str
+) -> Union[HttpResponse, FileResponse]:
     if logger.isEnabledFor(logging.DEBUG):
         try:
-            logger.debug(f"Downloding file from {storage.getBackblazeUrl(filename)}")
+            logger.debug(f"Downloding file from {storage.get_backblaze_url(filename)}")
         except Exception:
             logger.exception(f"Debug log failed. Could not retrive b2 file url for {filename}")
 
     try:
         if storage.exists(filename):
-            contentType, _encoding = mimetypes.guess_type(filename)
-            return FileResponse(storage.open(filename, "r"), content_type=contentType)
+            content_type, _encoding = mimetypes.guess_type(filename)
+            return FileResponse(storage.open(filename, "r"), content_type=content_type)
     except (FileNotFoundError, FileNotPresent):
         logging.exception("Opening backblaze file failed")
 

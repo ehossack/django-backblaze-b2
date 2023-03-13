@@ -63,6 +63,9 @@ pytest-pythonpath = "^0.7"
 docutils = "^0.19"
 toml = "^0.10.2"
 
+[tool.poetry.group.dev.dependencies]
+pep8-naming = "^0.13.3"
+
 [build-system]
 requires = ["poetry>=1.2.0"]
 build-backend = "poetry.masonry.api"

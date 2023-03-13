@@ -4,29 +4,29 @@ from django_backblaze_b2 import BackblazeB2Storage, LoggedInStorage, PublicStora
 
 
 class ModelWithFiles(models.Model):
-    b2StorageFile = models.FileField(
-        name="b2StorageFile",
+    b2_storagefile = models.FileField(
+        name="b2_storagefile",
         upload_to="uploads",
         verbose_name="B2 Storage File",
         storage=BackblazeB2Storage,  # type: ignore
         blank=True,
     )
-    publicFile = models.FileField(
-        name="publicFile",
+    public_file = models.FileField(
+        name="public_file",
         upload_to="uploads",
         verbose_name="Public File",
         storage=PublicStorage,  # type: ignore
         blank=True,
     )
-    loggedInFile = models.FileField(
-        name="loggedInFile",
+    logged_in_file = models.FileField(
+        name="logged_in_file",
         upload_to="uploads",
         verbose_name="Logged-In File",
         storage=LoggedInStorage,  # type: ignore
         blank=True,
     )
-    staffFile = models.FileField(
-        name="staffFile",
+    staff_file = models.FileField(
+        name="staff_file",
         upload_to="uploads",
         verbose_name="Staff-Only File",
         storage=StaffStorage,  # type: ignore
@@ -35,8 +35,8 @@ class ModelWithFiles(models.Model):
 
     def __str__(self) -> str:
         return (
-            f"f={self.b2StorageFile or '<none>'}"
-            f", p={self.publicFile or '<none>'}"
-            f", li={self.loggedInFile or '<none>'}"
-            f", s={self.staffFile or '<none>'}"
+            f"f={self.b2_storagefile or '<none>'}"
+            f", p={self.public_file or '<none>'}"
+            f", li={self.logged_in_file or '<none>'}"
+            f", s={self.staff_file or '<none>'}"
         )

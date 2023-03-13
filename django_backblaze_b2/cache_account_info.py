@@ -50,28 +50,30 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
     and within the 'locked' blocks, mutation of values between cache accesses
     """
 
-    def __init__(self, cacheName: str):
-        logger.debug(f"Initializing {self.__class__.__name__} with cache '{cacheName}'")
-        self._cacheName = cacheName
-        self._cacheLock = threading.Lock()
+    def __init__(self, cache_name: str):
+        logger.debug(f"Initializing {self.__class__.__name__} with cache '{cache_name}'")
+        self._cache_name = cache_name
+        self._cache_lock = threading.Lock()
         try:
-            self.cache = caches[cacheName]
+            self.cache = caches[cache_name]
             self.cache.set("bucket_names", [])
         except InvalidCacheBackendError:
             logger.exception("Cache assignment failed")
             from django.conf import settings
 
-            helpMessage = (
+            help_message = (
                 (
                     ". "
-                    "The default 'accountInfo' option of this library is with a django cache"
+                    "The default 'account_info' option of this library is with a django cache"
                     " by the name of 'django-backblaze-b2'"
                 )
-                if "accountInfo" not in settings.BACKBLAZE_CONFIG
+                if "account_info" not in settings.BACKBLAZE_CONFIG
                 else ""
             )
 
-            raise ImproperlyConfigured(f"Expected to find a cache with name '{cacheName}' as per options" + helpMessage)
+            raise ImproperlyConfigured(
+                f"Expected to find a cache with name '{cache_name}' as per options" + help_message
+            )
         super(DjangoCacheAccountInfo, self).__init__()
 
     def clear(self):
@@ -169,7 +171,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
 
     def get_bucket_name_or_none_from_bucket_id(self, bucket_id: str) -> Optional[str]:
         try:
-            self._cacheLock.acquire()
+            self._cache_lock.acquire()
             for bucket_name in self.cache.get("bucket_names", []):
                 cached_id = self.cache.get(_bucket_cachekey(bucket_name))
                 if cached_id and cached_id == bucket_id:
@@ -178,11 +180,11 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         except KeyError as e:
             logger.debug(f"cache miss {bucket_id}: {e}")
         finally:
-            self._cacheLock.release()
+            self._cache_lock.release()
         return None
 
     def refresh_entire_bucket_name_cache(self, name_id_iterable: Iterable[Tuple[str, str]]):
-        with self._cacheLock:
+        with self._cache_lock:
             new_bucket_names = set()
             for bucket_name, bucket_id in name_id_iterable:
                 self.cache.set(_bucket_cachekey(bucket_name), bucket_id)
@@ -195,25 +197,25 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
             self.cache.set("bucket_names", list(new_bucket_names))
 
     def save_bucket(self, bucket: StoredBucketInfo):
-        with self._cacheLock:
+        with self._cache_lock:
             self.cache.set(_bucket_cachekey(bucket.name), bucket.id_)
             self.cache.set("bucket_names", self.cache.get("bucket_names", []) + [bucket.name])
 
     def remove_bucket_name(self, bucket_name):
-        with self._cacheLock:
+        with self._cache_lock:
             self.cache.set("bucket_names", [n for n in self.cache.get("bucket_names", []) if n != bucket_name])
             self.cache.delete(_bucket_cachekey(bucket_name))
 
     def list_bucket_names_ids(self) -> List[Tuple[str, str]]:
         tuples = []
-        with self._cacheLock:
+        with self._cache_lock:
             for bucket_name in self.cache.get("bucket_names", []):
                 bucket_id = self.cache.get(_bucket_cachekey(bucket_name))
                 tuples.append((bucket_name, bucket_id))
         return tuples
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}{{cacheName={self._cacheName},cache={self.cache}}}"
+        return f"{self.__class__.__name__}{{cache_name={self._cache_name},cache={self.cache}}}"
 
 
 def _bucket_cachekey(bucket_name: str) -> str:

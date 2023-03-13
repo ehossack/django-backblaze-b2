@@ -13,16 +13,16 @@ def index(request: HttpRequest) -> HttpResponse:
             model = ModelWithFiles
             fields = "__all__"
 
-    modelInstance: Optional[ModelWithFiles] = ModelWithFiles.objects.first()
+    model_instance: Optional[ModelWithFiles] = ModelWithFiles.objects.first()
 
     if request.method == "POST":
         form = FileForm(data=request.POST, files=request.FILES)
         if form.is_valid():
             form.save()
-            modelInstance = cast(ModelWithFiles, form.instance)
-            modelInstance.refresh_from_db()
-            form = FileForm(instance=modelInstance)
+            model_instance = cast(ModelWithFiles, form.instance)
+            model_instance.refresh_from_db()
+            form = FileForm(instance=model_instance)
     else:
-        form = FileForm(instance=modelInstance)
+        form = FileForm(instance=model_instance)
 
     return render(request, "index.html", {"form": form})

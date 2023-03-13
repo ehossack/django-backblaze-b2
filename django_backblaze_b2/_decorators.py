@@ -4,7 +4,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.translation import gettext_lazy as _
 
 
-def requiresLogin(requiresStaff=False):
+def _requires_login(requires_staff=False):
     """
     Decorator for views that checks that the user passes the given test,
     redirecting to the log-in page if necessary. The test should be a callable
@@ -18,7 +18,7 @@ def requiresLogin(requiresStaff=False):
 
             if request.user.is_anonymous:
                 return redirect_to_login(request.get_full_path())
-            if not request.user.is_active or (requiresStaff and not request.user.is_staff):
+            if not request.user.is_active or (requires_staff and not request.user.is_staff):
                 return HttpResponse(_("Unauthorized"), status=401)
             return view_func(request, *args, **kwargs)
 

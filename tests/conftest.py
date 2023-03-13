@@ -11,7 +11,7 @@ def randomword(length=5):
 
 
 @pytest.fixture()
-def tempFile() -> File:
+def tempfile() -> File:
     from django.core.files.uploadedfile import SimpleUploadedFile
 
     return SimpleUploadedFile(f"filename-{randomword()}.pdf", b"file-contents")  # must be bytestring

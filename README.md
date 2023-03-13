@@ -36,7 +36,7 @@ e.g.
 from django_backblaze_b2 import BackblazeB2Storage
 
 class MyModel(models.Model):
-    fileField = models.FileField(
+    file_field = models.FileField(
         upload_to="uploads",
         storage=BackblazeB2Storage
     )
@@ -56,8 +56,8 @@ class MyModel(models.Model):
 ### Caching
 
 To retrieve file metadata ("file info" as the b2 sdk names it), this library has to authorize and request data from b2 servers, even for just resolving the url for a file. Because these are network calls, and relatively expensive in comparison to a file-based storage, and because data is unlikely to change frequently, there is some caching done by this library.  
-By default, the account information (`accountInfo`) configuration of the settings uses a cache by the name of `django-backblaze-b2` which you must have in your `CACHES` section of your `settings.py`. This is to leverage django's thread-safe cache implementations, and if you are using a database cache table or memcached, (rather than LocMemCache) your cache can be shared by the multiple django processes that typically serve requests.  
-It is not recommended configure `accountInfo` with the `default` django cache, as the `clear()` method may be called during the backblaze lifecycle.  
+By default, the account information (`account_info`) configuration of the settings uses a cache by the name of `django-backblaze-b2` which you must have in your `CACHES` section of your `settings.py`. This is to leverage django's thread-safe cache implementations, and if you are using a database cache table or memcached, (rather than LocMemCache) your cache can be shared by the multiple django processes that typically serve requests.  
+It is not recommended configure `account_info` with the `default` django cache, as the `clear()` method may be called during the backblaze lifecycle.  
 If you do not wish to use a django cache, you can use a sqlite database on disk for caching, or use a non-thread-safe in-memory implementation. This is only recommended for single-threaded deployments (remember in most deployments a new thread serves each request).  
 For further discussion on this see https://github.com/ehossack/django-backblaze-b2/issues/16
 

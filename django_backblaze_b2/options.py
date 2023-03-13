@@ -5,7 +5,7 @@ from typing_extensions import Literal, TypedDict
 
 class ProxiedBucketNames(TypedDict):
     public: Optional[str]
-    loggedIn: Optional[str]
+    logged_in: Optional[str]
     staff: Optional[str]
 
 
@@ -20,12 +20,12 @@ class InMemoryAccountInfoConfig(TypedDict):
 
 class SqliteAccountInfoConfig(TypedDict):
     type: Literal["sqlite"]
-    databasePath: str
+    database_path: str
 
 
 class CDNConfig(TypedDict):
-    baseUrl: str
-    includeBucketUrlSegments: bool
+    base_url: str
+    include_bucket_url_segments: bool
 
 
 class BackblazeB2StorageOptions(TypedDict):
@@ -35,31 +35,31 @@ class BackblazeB2StorageOptions(TypedDict):
     application_key_id: str
     application_key: str
     bucket: str
-    authorizeOnInit: bool
-    validateOnInit: bool
-    allowFileOverwrites: bool
-    accountInfo: Optional[Union[DjangoCacheAccountInfoConfig, InMemoryAccountInfoConfig, SqliteAccountInfoConfig]]
-    forbidFilePropertyCaching: bool
-    specificBucketNames: ProxiedBucketNames
-    cdnConfig: Optional[CDNConfig]
+    authorize_on_init: bool
+    validate_on_init: bool
+    allow_file_overwrites: bool
+    account_info: Optional[Union[DjangoCacheAccountInfoConfig, InMemoryAccountInfoConfig, SqliteAccountInfoConfig]]
+    forbid_file_property_caching: bool
+    specific_bucket_names: ProxiedBucketNames
+    cdn_config: Optional[CDNConfig]
     # see: https://b2-sdk-python.readthedocs.io/en/master/api/api.html#b2sdk.v1.B2Api.create_bucket
-    nonExistentBucketDetails: Optional[Dict[str, Union[str, Dict[str, Any]]]]
-    defaultFileInfo: Dict[str, Any]
+    non_existent_bucket_details: Optional[Dict[str, Union[str, Dict[str, Any]]]]
+    default_file_info: Dict[str, Any]
 
 
-def getDefaultB2StorageOptions() -> BackblazeB2StorageOptions:
+def get_default_b2_storage_options() -> BackblazeB2StorageOptions:
     return {
         "realm": "production",
         "application_key_id": "you must set this value yourself",
         "application_key": "you must set this value yourself",
         "bucket": "django",
-        "authorizeOnInit": True,
-        "validateOnInit": True,
-        "allowFileOverwrites": False,
-        "accountInfo": {"type": "django-cache", "cache": "django-backblaze-b2"},
-        "forbidFilePropertyCaching": False,
-        "specificBucketNames": {"public": None, "loggedIn": None, "staff": None},
-        "cdnConfig": None,
-        "nonExistentBucketDetails": None,
-        "defaultFileInfo": {},
+        "authorize_on_init": True,
+        "validate_on_init": True,
+        "allow_file_overwrites": False,
+        "account_info": {"type": "django-cache", "cache": "django-backblaze-b2"},
+        "forbid_file_property_caching": False,
+        "specific_bucket_names": {"public": None, "logged_in": None, "staff": None},
+        "cdn_config": None,
+        "non_existent_bucket_details": None,
+        "default_file_info": {},
     }

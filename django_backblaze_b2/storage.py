@@ -22,25 +22,29 @@ from django_backblaze_b2.options import (
     BackblazeB2StorageOptions,
     DjangoCacheAccountInfoConfig,
     SqliteAccountInfoConfig,
-    getDefaultB2StorageOptions,
+    get_default_b2_storage_options,
 )
 
 logger = getLogger("django-backblaze-b2")
 
 
-class _BaseFileInfoDict(TypedDict):
-    fileId: str
-    fileName: str
-    fileInfo: dict
+class _SdkBaseFileInfoDict(TypedDict):
+    """See https://github.com/Backblaze/b2-sdk-python/blob/2c85182c82ee09b7db7216d70567aafb87f31536/b2sdk/file_version.py"""  # noqa: E501
+
+    fileId: str  # noqa: N815
+    fileName: str  # noqa: N815
+    fileInfo: dict  # noqa: N815
 
 
-class _FileInfoDict(_BaseFileInfoDict, total=False):
+class _SdkFileInfoDict(_SdkBaseFileInfoDict, total=False):
+    """See https://github.com/Backblaze/b2-sdk-python/blob/2c85182c82ee09b7db7216d70567aafb87f31536/b2sdk/file_version.py#L143"""  # noqa: E501
+
     size: int
-    uploadTimestamp: int
-    contentType: str
+    uploadTimestamp: int  # noqa: N815
+    contentType: str  # noqa: N815
 
 
-class B2FileInformationNotAvailableException(Exception):
+class B2FileInformationNotAvailableException(Exception):  # noqa: N818
     ...
 
 
@@ -49,32 +53,32 @@ class BackblazeB2Storage(Storage):
     """Storage class which fulfills the Django Storage contract through b2 apis"""
 
     def __init__(self, **kwargs):
-        opts = self._getDjangoSettingsOptions(kwargs.get("opts", {}))
+        opts = self._get_django_settings_options(kwargs.get("opts", {}))
         if "opts" in kwargs:
-            self._validateOptions(kwargs.get("opts"))
+            self._validate_options(kwargs.get("opts"))
         _merge(opts, kwargs.get("opts", {}))
-        logOpts = opts.copy()
-        logOpts.update({"application_key_id": "<redacted>", "application_key": "<redacted>"})
-        logger.debug(f"Initializing {self.__class__.__name__} with options {logOpts}")
+        log_opts = opts.copy()
+        log_opts.update({"application_key_id": "<redacted>", "application_key": "<redacted>"})
+        logger.debug(f"Initializing {self.__class__.__name__} with options {log_opts}")
 
-        self._bucketName = opts["bucket"]
-        self._defaultFileMetadata = opts["defaultFileInfo"]
-        self._forbidFilePropertyCaching = opts["forbidFilePropertyCaching"]
+        self._bucket_name = opts["bucket"]
+        self._default_file_metadata = opts["default_file_info"]
+        self._forbid_file_property_caching = opts["forbid_file_property_caching"]
         self._authInfo = dict(
             [(k, v) for k, v in opts.items() if k in ["realm", "application_key_id", "application_key"]]
         )
-        self._allowFileOverwrites = opts["allowFileOverwrites"]
+        self._allow_file_overwrites = opts["allow_file_overwrites"]
 
-        self._getAccountInfo = self._createAccountInfoCallable(opts)
+        self._get_account_info = self._create_account_info_callable(opts)
 
-        logger.info(f"{self.__class__.__name__} instantiated to use bucket {self._bucketName}")
-        if opts["authorizeOnInit"]:
+        logger.info(f"{self.__class__.__name__} instantiated to use bucket {self._bucket_name}")
+        if opts["authorize_on_init"]:
             logger.debug(f"{self.__class__.__name__} authorizing")
-            self.b2Api
-            if opts["validateOnInit"]:
-                self._getOrCreateBucket(opts["nonExistentBucketDetails"])
+            self.b2_api
+            if opts["validate_on_init"]:
+                self._get_or_create_bucket(opts["non_existent_bucket_details"])
 
-    def _getDjangoSettingsOptions(self, kwargOpts: Dict) -> BackblazeB2StorageOptions:
+    def _get_django_settings_options(self, kwarg_opts: Dict) -> BackblazeB2StorageOptions:
         """Setting terminology taken from:
         https://b2-sdk-python.readthedocs.io/en/master/glossary.html#term-application-key-ID
         kwargOpts available for subclasses
@@ -88,68 +92,68 @@ class BackblazeB2Storage(Storage):
                 "At minimum BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'"
                 f"\nfound: {settings.BACKBLAZE_CONFIG}"
             )
-        self._validateOptions(settings.BACKBLAZE_CONFIG)
-        opts = getDefaultB2StorageOptions()
+        self._validate_options(settings.BACKBLAZE_CONFIG)
+        opts = get_default_b2_storage_options()
         opts.update(settings.BACKBLAZE_CONFIG)  # type: ignore
         return opts
 
-    def _validateOptions(self, options: Dict) -> None:
-        unrecognizedOptions = [k for k in options.keys() if k not in getDefaultB2StorageOptions().keys()]
-        if unrecognizedOptions:
-            raise ImproperlyConfigured(f"Unrecognized options: {unrecognizedOptions}")
+    def _validate_options(self, options: Dict) -> None:
+        unrecognized_options = [k for k in options.keys() if k not in get_default_b2_storage_options().keys()]
+        if unrecognized_options:
+            raise ImproperlyConfigured(f"Unrecognized options: {unrecognized_options}")
 
-    def _createAccountInfoCallable(self, opts: BackblazeB2StorageOptions) -> Callable[[], AbstractAccountInfo]:
+    def _create_account_info_callable(self, opts: BackblazeB2StorageOptions) -> Callable[[], AbstractAccountInfo]:
         if (
-            not isinstance(opts["accountInfo"], dict)
-            or "type" not in opts["accountInfo"]
-            or opts["accountInfo"]["type"] not in ["memory", "sqlite", "django-cache"]
+            not isinstance(opts["account_info"], dict)
+            or "type" not in opts["account_info"]
+            or opts["account_info"]["type"] not in ["memory", "sqlite", "django-cache"]
         ):
             raise ImproperlyConfigured(
-                (f"accountInfo property must be a dict with type found in options.py, was {opts['accountInfo']}")
+                (f"'account_info' property must be a dict with type found in options.py, was {opts['account_info']}")
             )
-        if opts["accountInfo"]["type"] == "django-cache":
+        if opts["account_info"]["type"] == "django-cache":
             logger.debug(f"{self.__class__.__name__} will use {DjangoCacheAccountInfo.__name__}")
             return lambda: DjangoCacheAccountInfo(
-                cacheName=cast(DjangoCacheAccountInfoConfig, opts["accountInfo"]).get("cache", "django-backblaze-b2")
+                cache_name=cast(DjangoCacheAccountInfoConfig, opts["account_info"]).get("cache", "django-backblaze-b2")
             )
-        elif opts["accountInfo"]["type"] == "memory":
+        elif opts["account_info"]["type"] == "memory":
             logger.debug(f"{self.__class__.__name__} will use {InMemoryAccountInfo.__name__}")
             return lambda: InMemoryAccountInfo()
-        elif opts["accountInfo"]["type"] == "sqlite":
+        elif opts["account_info"]["type"] == "sqlite":
             logger.debug(f"{self.__class__.__name__} will use {SqliteAccountInfo.__name__}")
             return lambda: SqliteAccountInfo(
-                file_name=cast(SqliteAccountInfoConfig, opts["accountInfo"])["databasePath"]
+                file_name=cast(SqliteAccountInfoConfig, opts["account_info"])["database_path"]
             )
         raise ImproperlyConfigured()
 
     @property
-    def b2Api(self) -> B2Api:
-        if not hasattr(self, "_b2Api"):
-            self._accountInfo = self._getAccountInfo()
-            self._b2Api = B2Api(account_info=self._accountInfo, cache=AuthInfoCache(self._accountInfo))
-            self._b2Api.authorize_account(**self._authInfo)
-        return self._b2Api
+    def b2_api(self) -> B2Api:
+        if not hasattr(self, "_b2_api"):
+            self._account_info = self._get_account_info()
+            self._b2_api = B2Api(account_info=self._account_info, cache=AuthInfoCache(self._account_info))
+            self._b2_api.authorize_account(**self._authInfo)
+        return self._b2_api
 
     @property
     def bucket(self) -> Bucket:
         if not hasattr(self, "_bucket"):
-            self._getOrCreateBucket()
+            self._get_or_create_bucket()
         return self._bucket
 
-    def _getOrCreateBucket(self, newBucketDetails=None) -> None:
+    def _get_or_create_bucket(self, new_bucket_details=None) -> None:
         try:
-            self._bucket = self.b2Api.get_bucket_by_name(self._bucketName)
+            self._bucket = self.b2_api.get_bucket_by_name(self._bucket_name)
         except NonExistentBucket as e:
-            if newBucketDetails is not None:
-                logger.debug(f"Bucket {self._bucketName} not found. Creating with details: {newBucketDetails}")
-                if "bucket_type" not in newBucketDetails:
-                    newBucketDetails["bucket_type"] = "allPrivate"
-                self._bucket = self.b2Api.create_bucket(name=self._bucketName, **newBucketDetails)
+            if new_bucket_details is not None:
+                logger.debug(f"Bucket {self._bucket_name} not found. Creating with details: {new_bucket_details}")
+                if "bucket_type" not in new_bucket_details:
+                    new_bucket_details["bucket_type"] = "allPrivate"
+                self._bucket = self.b2_api.create_bucket(name=self._bucket_name, **new_bucket_details)
             else:
                 raise e
         logger.debug(f"Connected to bucket {self._bucket.as_dict()}")
 
-    def _refreshBucket(self) -> Bucket:
+    def _refresh_bucket(self) -> Bucket:
         if self._bucket:
             return self._bucket.get_fresh_state()
         return self.bucket
@@ -158,9 +162,9 @@ class BackblazeB2Storage(Storage):
         return B2File(
             name=name,
             bucket=self.bucket,
-            fileMetadata=self._defaultFileMetadata,
+            file_metadata=self._default_file_metadata,
             mode=mode,
-            sizeProvider=self.size,
+            size_provider=self.size,
         )
 
     def _save(self, name: str, content: IO[Any]) -> str:
@@ -171,73 +175,73 @@ class BackblazeB2Storage(Storage):
         return B2File(
             name=name,
             bucket=self.bucket,
-            fileMetadata=self._defaultFileMetadata,
+            file_metadata=self._default_file_metadata,
             mode="w",
-            sizeProvider=self.size,
-        ).saveAndRetrieveFile(content)
+            size_provider=self.size,
+        ).save_and_retrieve_file(content)
 
     def path(self, name: str) -> str:
         return name
 
     def delete(self, name: str) -> None:
-        fileInfo = self._fileInfo(name)
-        if fileInfo:
-            logger.debug(f"Deleting file {name} id=({fileInfo['fileId']})")
-            self.b2Api.delete_file_version(file_id=fileInfo["fileId"], file_name=name)
+        file_info = self._file_info(name)
+        if file_info:
+            logger.debug(f"Deleting file {name} id=({file_info['fileId']})")
+            self.b2_api.delete_file_version(file_id=file_info["fileId"], file_name=name)
             if self._cache:
-                self._cache.delete(self._fileCacheKey(name))
+                self._cache.delete(self._file_cache_key(name))
         else:
             logger.debug("Not found")
 
-    def _fileInfo(self, name: str) -> Optional[_FileInfoDict]:
+    def _file_info(self, name: str) -> Optional[_SdkFileInfoDict]:
         try:
             if self._cache:
-                cacheKey = self._fileCacheKey(name)
-                timeoutInSeconds = 60
+                cache_key = self._file_cache_key(name)
+                timeout_in_seconds = 60
 
-                def loadInfo():
+                def load_info():
                     logger.debug(f"file info cache miss for {name}")
                     return self.bucket.get_file_info_by_name(name).as_dict()
 
-                return self._cache.get_or_set(key=cacheKey, default=loadInfo, timeout=timeoutInSeconds)
+                return self._cache.get_or_set(key=cache_key, default=load_info, timeout=timeout_in_seconds)
             return self.bucket.get_file_info_by_name(name).as_dict()
         except FileOrBucketNotFound:
             return None
 
-    def _fileCacheKey(self, name: str) -> str:
+    def _file_cache_key(self, name: str) -> str:
         return hash(f"{self.bucket.name}__{name}".encode()).hexdigest()
 
     @property
     def _cache(self) -> Optional[BaseCache]:
         if (
-            not self._forbidFilePropertyCaching
-            and self.b2Api  # force init
-            and self._accountInfo
-            and isinstance(self._accountInfo, DjangoCacheAccountInfo)
+            not self._forbid_file_property_caching
+            and self.b2_api  # force init
+            and self._account_info
+            and isinstance(self._account_info, DjangoCacheAccountInfo)
         ):
-            return self._accountInfo.cache
+            return self._account_info.cache
         return None
 
     def exists(self, name: str) -> bool:
-        return bool(self._fileInfo(name))
+        return bool(self._file_info(name))
 
     def size(self, name: str) -> int:
-        fileInfo = self._fileInfo(name)
-        return fileInfo.get("size", 0) if fileInfo else 0
+        file_info = self._file_info(name)
+        return file_info.get("size", 0) if file_info else 0
 
     def url(self, name: Optional[str]) -> str:
         if not name:
             raise Exception("Name must be defined")
-        return self._getFileUrl(name)
+        return self._get_file_url(name)
 
-    def _getFileUrl(self, name: str) -> str:
-        return self.getBackblazeUrl(name)
+    def _get_file_url(self, name: str) -> str:
+        return self.get_backblaze_url(name)
 
-    def getBackblazeUrl(self, filename: str) -> str:
-        return self.b2Api.get_download_url_for_file_name(bucket_name=self._bucketName, file_name=filename)
+    def get_backblaze_url(self, filename: str) -> str:
+        return self.b2_api.get_download_url_for_file_name(bucket_name=self._bucket_name, file_name=filename)
 
     def get_available_name(self, name: str, max_length: Optional[int] = None) -> str:
-        if self._allowFileOverwrites:
+        if self._allow_file_overwrites:
             return name
         return super().get_available_name(name, max_length)
 
@@ -264,10 +268,10 @@ class BackblazeB2Storage(Storage):
 
         from django.conf import settings
 
-        fileInfo = self._fileInfo(name)
+        file_info = self._file_info(name)
         try:
-            if fileInfo and float(fileInfo.get("uploadTimestamp", 0)) > 0:
-                timestamp = float(fileInfo["uploadTimestamp"]) / 1000.0
+            if file_info and float(file_info.get("uploadTimestamp", 0)) > 0:
+                timestamp = float(file_info["uploadTimestamp"]) / 1000.0
                 if settings.USE_TZ:
                     # Safe to use .replace() because UTC doesn't have DST
                     return datetime.utcfromtimestamp(timestamp).replace(tzinfo=timezone.utc)
@@ -292,11 +296,11 @@ def _merge(target: Dict, source: Dict, path=None) -> Dict:
         path = []
     for key in source:
         if key in target:
-            printablePath = ".".join(path + [str(key)])
+            printable_path = ".".join(path + [str(key)])
             if isinstance(target[key], dict) and isinstance(source[key], dict):
                 _merge(target[key], source[key], path + [str(key)])
             elif target[key] != source[key]:
-                logger.debug(f"Overriding setting {printablePath} with value {source[key]}")
+                logger.debug(f"Overriding setting {printable_path} with value {source[key]}")
                 target[key] = source[key]
         else:
             target[key] = source[key]
