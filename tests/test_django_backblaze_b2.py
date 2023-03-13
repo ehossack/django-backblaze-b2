@@ -376,7 +376,10 @@ def _mockedBucket():
 
 @contextmanager
 def _fileInfo(
-    size: Optional[int] = None, id: str = "someId", name: str = "someFile", doesFileExist: Callable[[], bool] = None
+    size: Optional[int] = None,
+    id: str = "someId",
+    name: str = "someFile",
+    doesFileExist: Optional[Callable[[], bool]] = None,
 ):
     def existOrThrow():
         if doesFileExist():
