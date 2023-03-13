@@ -15,7 +15,7 @@ class PublicStorage(BackblazeB2Storage):
     If the bucket is public, returns the bucket's url, or CDN if configured
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._bucketType: Optional[Literal["allPublic", "allPrivate"]] = None
         self._cdnConfig: Optional[CDNConfig] = kwargs.get("opts", {}).get("cdnConfig")
