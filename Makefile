@@ -4,8 +4,9 @@
 		cleanup-docker run-sample-proj \
 		publish-to-pypi release require-var-%
 
-pyversions=$(shell cat .python-version)
+pyversions=$(shell cat .python-versions)
 setup:
+	echo "$(firstword ${pyversions})" > .python-version
 	pyenv install -s $(firstword ${pyversions})
 	pip install -r requirements.txt
 	poetry install --sync
