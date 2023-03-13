@@ -39,4 +39,5 @@
   "cSpell.words": [
     "deconstructible"
   ],
+  "mypy.runUsingActiveInterpreter": true,
 }
