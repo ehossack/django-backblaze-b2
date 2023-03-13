@@ -80,7 +80,6 @@ def test_worksWithFieldFileWriteOperation(tempFile):
     _mockFileDownload(tempFile)
 
     with _fileInfo(size=tempFile.size):
-
         fieldFile = _getFileFromNewFilesModelObject(tempFile)
         with fieldFile.open("w") as f:
             f.write("new-contents".encode("utf-8"))
