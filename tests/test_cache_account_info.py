@@ -253,3 +253,20 @@ def test_can_perform_operation_after_cache_cleared():
 
 def _auth_token_msg(message: str) -> str:
     return str(MissingAccountData(message))
+
+
+def test_list_bucket_names_ids():
+    cacheAccountInfo = DjangoCacheAccountInfo("test-cache")
+    bucket = mock.MagicMock()
+    bucket.id_ = "some-id"
+    bucket.name = "some-name"
+    bucket2 = mock.MagicMock()
+    bucket2.id_ = "something-random"
+    bucket2.name = "some-random-id"
+    cacheAccountInfo.save_bucket(bucket)
+    cacheAccountInfo.save_bucket(bucket2)
+
+    cacheAccountInfo.refresh_entire_bucket_name_cache([("some-name", "new-id"), ("something-random", "some-random-id")])
+    name_ids = cacheAccountInfo.list_bucket_names_ids()
+
+    assert name_ids == [("some-name", "new-id"), ("something-random", "some-random-id")]
