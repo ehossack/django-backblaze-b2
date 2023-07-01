@@ -2,7 +2,7 @@ import logging
 import threading
 from functools import wraps
 from hashlib import sha3_224 as hash
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 from b2sdk.account_info.exception import MissingAccountData
 from b2sdk.account_info.upload_url_pool import UrlPoolAccountInfo
@@ -203,6 +203,14 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         with self._cacheLock:
             self.cache.set("bucket_names", [n for n in self.cache.get("bucket_names", []) if n != bucket_name])
             self.cache.delete(_bucket_cachekey(bucket_name))
+
+    def list_bucket_names_ids(self) -> List[Tuple[str, str]]:
+        tuples = []
+        with self._cacheLock:
+            for bucket_name in self.cache.get("bucket_names", []):
+                bucket_id = self.cache.get(_bucket_cachekey(bucket_name))
+                tuples.append((bucket_name, bucket_id))
+        return tuples
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}{{cacheName={self._cacheName},cache={self.cache}}}"

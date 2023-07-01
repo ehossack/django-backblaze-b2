@@ -198,6 +198,13 @@ def test_can_refresh_entire_bucket_name_cache():
     assert bucket3_name_or_none is None
     assert new_bucket_id_or_none == "new-bucket-id"
     assert new_bucket_name_or_none == "new-bucket"
+    for bucket_tuple in [
+        ("some-name", "some-changed-id"),
+        ("other-changed-name", "other-id"),
+        ("new-bucket", "new-bucket-id"),
+    ]:
+        # assert presence only, list method gives no guarantees on order
+        assert bucket_tuple in cacheAccountInfo.list_bucket_names_ids()
 
 
 def test_can_clear_cache(allowed: Dict):
@@ -253,3 +260,27 @@ def test_can_perform_operation_after_cache_cleared():
 
 def _auth_token_msg(message: str) -> str:
     return str(MissingAccountData(message))
+
+
+def test_list_bucket_names_ids_when_buckets():
+    cacheAccountInfo = DjangoCacheAccountInfo("test-cache")
+    bucket = mock.MagicMock()
+    bucket.id_ = "some-id"
+    bucket.name = "some-name"
+    bucket2 = mock.MagicMock()
+    bucket2.id_ = "other-id"
+    bucket2.name = "other-name"
+    cacheAccountInfo.save_bucket(bucket)
+    cacheAccountInfo.save_bucket(bucket2)
+
+    bucket_names_ids = cacheAccountInfo.list_bucket_names_ids()
+
+    assert bucket_names_ids == [("some-name", "some-id"), ("other-name", "other-id")]
+
+
+def test_list_bucket_names_ids_when_no_buckets():
+    cacheAccountInfo = DjangoCacheAccountInfo("test-cache")
+
+    bucket_names_ids = cacheAccountInfo.list_bucket_names_ids()
+
+    assert bucket_names_ids == []
