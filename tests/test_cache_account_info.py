@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from b2sdk.account_info.exception import MissingAccountData
 from django.core.exceptions import ImproperlyConfigured
+
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
 
 
@@ -165,17 +166,38 @@ def test_can_refresh_entire_bucket_name_cache():
     bucket2 = mock.MagicMock()
     bucket2.id_ = "other-id"
     bucket2.name = "other-name"
+    bucket3 = mock.MagicMock()
+    bucket3.id_ = "another-id"
+    bucket3.name = "another-name"
     cacheAccountInfo.save_bucket(bucket)
     cacheAccountInfo.save_bucket(bucket2)
+    cacheAccountInfo.save_bucket(bucket3)
 
-    cacheAccountInfo.refresh_entire_bucket_name_cache([("some-name", "new-id"), ("something-random", "some-random-id")])
+    cacheAccountInfo.refresh_entire_bucket_name_cache(
+        [("some-name", "some-changed-id"), ("other-changed-name", "other-id"), ("new-bucket", "new-bucket-id")]
+    )
+
     bucket_id_or_none = cacheAccountInfo.get_bucket_id_or_none_from_bucket_name("some-name")
-    bucket_id_or_none2 = cacheAccountInfo.get_bucket_id_or_none_from_bucket_name("other-name")
-    random_id_or_none = cacheAccountInfo.get_bucket_id_or_none_from_bucket_name("something-random")
+    bucket_name_or_none = cacheAccountInfo.get_bucket_name_or_none_from_bucket_id("some-changed-id")
+    bucket_name_or_none_from_old_id = cacheAccountInfo.get_bucket_name_or_none_from_bucket_id("some-id")
+    bucket2_id_or_none = cacheAccountInfo.get_bucket_id_or_none_from_bucket_name("other-changed-name")
+    bucket2_id_or_none_from_old_name = cacheAccountInfo.get_bucket_id_or_none_from_bucket_name("other-name")
+    bucket2_name_or_none = cacheAccountInfo.get_bucket_name_or_none_from_bucket_id("other-id")
+    bucket3_id_or_none = cacheAccountInfo.get_bucket_id_or_none_from_bucket_name("another-name")
+    bucket3_name_or_none = cacheAccountInfo.get_bucket_name_or_none_from_bucket_id("another-id")
+    new_bucket_id_or_none = cacheAccountInfo.get_bucket_id_or_none_from_bucket_name("new-bucket")
+    new_bucket_name_or_none = cacheAccountInfo.get_bucket_name_or_none_from_bucket_id("new-bucket-id")
 
-    assert bucket_id_or_none == "new-id"
-    assert bucket_id_or_none2 is None
-    assert random_id_or_none == "some-random-id"
+    assert bucket_id_or_none == "some-changed-id"
+    assert bucket_name_or_none == "some-name"
+    assert bucket_name_or_none_from_old_id is None
+    assert bucket2_id_or_none == "other-id"
+    assert bucket2_name_or_none == "other-changed-name"
+    assert bucket2_id_or_none_from_old_name is None
+    assert bucket3_id_or_none is None
+    assert bucket3_name_or_none is None
+    assert new_bucket_id_or_none == "new-bucket-id"
+    assert new_bucket_name_or_none == "new-bucket"
 
 
 def test_can_clear_cache(allowed: Dict):
