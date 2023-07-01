@@ -1,4 +1,5 @@
 import logging
+import threading
 from functools import wraps
 from hashlib import sha3_224 as hash
 from typing import Iterable, Optional, Tuple
@@ -42,11 +43,17 @@ def _handle_result_is_none(item_name=None):
 class DjangoCacheAccountInfo(UrlPoolAccountInfo):
     """
     Store account information in django's cache: https://docs.djangoproject.com/en/3.1/topics/cache
+
+    Threadsafe only in the context of its own runtime,
+    i.e. it's possible (unlikely though, only in a highly concurrent scenario) that a
+    wrapper of Django could launch 2+ different processes, which would not share threads,
+    and within the 'locked' blocks, mutation of values between cache accesses
     """
 
     def __init__(self, cacheName: str):
         logger.debug(f"Initializing {self.__class__.__name__} with cache '{cacheName}'")
         self._cacheName = cacheName
+        self._cacheLock = threading.Lock()
         try:
             self.cache = caches[cacheName]
             self.cache.set("bucket_names", [])
@@ -162,29 +169,40 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
 
     def get_bucket_name_or_none_from_bucket_id(self, bucket_id: str) -> Optional[str]:
         try:
+            self._cacheLock.acquire()
             for bucket_name in self.cache.get("bucket_names", []):
-                bucket_id = self.cache.get(_bucket_cachekey(bucket_name))
-                if bucket_id:
+                cached_id = self.cache.get(_bucket_cachekey(bucket_name))
+                if cached_id and cached_id == bucket_id:
                     return bucket_name
             logger.debug(f"cache miss {bucket_id}")
         except KeyError as e:
             logger.debug(f"cache miss {bucket_id}: {e}")
+        finally:
+            self._cacheLock.release()
         return None
 
     def refresh_entire_bucket_name_cache(self, name_id_iterable: Iterable[Tuple[str, str]]):
-        bucket_names_to_remove = set(self.cache.get("bucket_names", [])) - {name for name, id in name_id_iterable}
-        for bucket_name, bucket_id in name_id_iterable:
-            self.cache.set(_bucket_cachekey(bucket_name), bucket_id)
-        for bucket_name in bucket_names_to_remove:
-            self.remove_bucket_name(bucket_name)
+        with self._cacheLock:
+            new_bucket_names = set()
+            for bucket_name, bucket_id in name_id_iterable:
+                self.cache.set(_bucket_cachekey(bucket_name), bucket_id)
+                new_bucket_names.add(bucket_name)
+
+            buckets_to_remove = [n for n in self.cache.get("bucket_names", []) if n not in new_bucket_names]
+            for bucket_name in buckets_to_remove:
+                self.cache.delete(_bucket_cachekey(bucket_name))
+
+            self.cache.set("bucket_names", list(new_bucket_names))
 
     def save_bucket(self, bucket: StoredBucketInfo):
-        self.cache.set(_bucket_cachekey(bucket.name), bucket.id_)
-        self.cache.set("bucket_names", list(self.cache.get("bucket_names", [])) + [bucket.name])
+        with self._cacheLock:
+            self.cache.set(_bucket_cachekey(bucket.name), bucket.id_)
+            self.cache.set("bucket_names", self.cache.get("bucket_names", []) + [bucket.name])
 
     def remove_bucket_name(self, bucket_name):
-        self.cache.set("bucket_names", [n for n in self.cache.get("bucket_names", []) if n != bucket_name])
-        self.cache.delete(_bucket_cachekey(bucket_name))
+        with self._cacheLock:
+            self.cache.set("bucket_names", [n for n in self.cache.get("bucket_names", []) if n != bucket_name])
+            self.cache.delete(_bucket_cachekey(bucket_name))
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}{{cacheName={self._cacheName},cache={self.cache}}}"
