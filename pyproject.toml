@@ -3,7 +3,7 @@ line-length = 120
 
 [tool.poetry]
 name = "django-backblaze-b2"
-version = "3.1.0"
+version = "3.2.0"
 description = "A Django app to use backblaze b2 as storage."
 authors = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
 maintainers = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
