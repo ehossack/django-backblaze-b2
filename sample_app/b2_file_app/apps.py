@@ -16,15 +16,15 @@ class B2FilesConfig(AppConfig):
         logger = getLogger(__name__)
 
         if "runserver" in sys.argv:
-            shutdownTime = int(settings.SECONDS_TO_RUN_APP)
-            logger.debug(f"Lifecycle: {shutdownTime}")
+            shutdown_time = int(settings.SECONDS_TO_RUN_APP)
+            logger.debug(f"Lifecycle: {shutdown_time}")
 
-            if shutdownTime:
-                logger.warn(f"\n\n\n\nApp lifecycle of {shutdownTime} seconds configured. Will exit after.\n\n\n")
+            if shutdown_time:
+                logger.warn(f"\n\n\n\nApp lifecycle of {shutdown_time} seconds configured. Will exit after.\n\n\n")
 
                 def shutdown():
                     logger.warn("Exiting now!")
                     Signal().send("system")
                     _thread.interrupt_main()
 
-                Timer(shutdownTime, shutdown).start()
+                Timer(shutdown_time, shutdown).start()

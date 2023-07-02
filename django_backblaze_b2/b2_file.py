@@ -15,23 +15,23 @@ class B2File(File):
         self,
         name: str,
         bucket: Bucket,
-        sizeProvider: Callable[[str], int],
-        fileMetadata: Dict[str, Any],
+        size_provider: Callable[[str], int],
+        file_metadata: Dict[str, Any],
         mode: str,
     ):
         self.name: str = name
         self._bucket: Bucket = bucket
-        self._sizeProvider = sizeProvider
-        self._fileMetadata = fileMetadata
+        self._size_provider = size_provider
+        self._file_metadata = file_metadata
         self._mode: str = mode
-        self._hasUnwrittenData: bool = False
+        self._has_unwritted_data: bool = False
         self._contents: Optional[IO] = None
 
     # https://github.com/python/mypy/issues/4125 -- kinda makes you wonder why we like mypy?
     @property  # type: ignore
     def file(self) -> IO[Any]:  # type: ignore
         if self._contents is None:
-            self._contents = self._readFileContents()
+            self._contents = self._read_file_contents()
         return self._contents
 
     # https://github.com/python/mypy/issues/1465
@@ -39,18 +39,18 @@ class B2File(File):
     def file(self, value: IO[Any]) -> None:
         self._contents = value
 
-    def _readFileContents(self) -> BytesIO:
-        downloadingFile = self._bucket.download_file_by_name(file_name=self.name)
-        bytesIO = BytesIO()
-        downloadingFile.save(bytesIO)
-        contents = BytesIO(bytesIO.getvalue())
-        bytesIO.close()
+    def _read_file_contents(self) -> BytesIO:
+        currently_downloading_file = self._bucket.download_file_by_name(file_name=self.name)
+        bytes_io = BytesIO()
+        currently_downloading_file.save(bytes_io)
+        contents = BytesIO(bytes_io.getvalue())
+        bytes_io.close()
         return contents
 
     @property
     def size(self) -> int:
         if not hasattr(self, "_size"):
-            self._size = self._sizeProvider(self.name)
+            self._size = self._size_provider(self.name)
         return self._size
 
     def read(self, num_bytes: Optional[int] = None) -> bytes:
@@ -61,15 +61,15 @@ class B2File(File):
             raise AttributeError("File was not opened for write access.")
         self.file = BytesIO(content)
 
-        self._hasUnwrittenData = True
+        self._has_unwritted_data = True
         return len(content)
 
     def close(self) -> None:
-        if self._hasUnwrittenData:
-            self.saveAndRetrieveFile(self.file)
+        if self._has_unwritted_data:
+            self.save_and_retrieve_file(self.file)
         self.file.close()
 
-    def saveAndRetrieveFile(self, content: IO[Any]) -> str:
+    def save_and_retrieve_file(self, content: IO[Any]) -> str:
         """
         Save and retrieve the filename.
         If the file exists it will make another version of that file.
@@ -78,7 +78,7 @@ class B2File(File):
         self._bucket.upload_bytes(
             data_bytes=content.read(),
             file_name=self.name,
-            file_infos=self._fileMetadata,
+            file_infos=self._file_metadata,
         )
-        self._hasUnwrittenData = False
+        self._has_unwritted_data = False
         return self.name
