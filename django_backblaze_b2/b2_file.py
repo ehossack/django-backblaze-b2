@@ -56,7 +56,7 @@ class B2File(File):
     def read(self, num_bytes: Optional[int] = None) -> bytes:
         return self.file.read(num_bytes if isinstance(num_bytes, int) else -1)
 
-    def write(self, content: bytes) -> int:
+    def write(self, content) -> int:
         if "w" not in self._mode:
             raise AttributeError("File was not opened for write access.")
         self.file = BytesIO(content)
