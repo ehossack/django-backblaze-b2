@@ -140,18 +140,18 @@ run-sample-proj:
 release: publish-to-pypi
 	gh release create ${PROJ_VERSION} --notes '${VER_DESCRIPTION}'
 
-publish-to-pypi: require-var-pypi_user require-var-pypi_pw
+publish-to-pypi: require-var-pypi_token
 	$(eval VER_DESCRIPTION = $(shell bash -c 'read -p "Release Description: " desc; echo $$desc'))
 	$(eval PROJ_VERSION = $(shell poetry run python -c "import toml; print(toml.load('pyproject.toml')['tool']['poetry']['version'])"))
-	poetry publish --build --dry-run --username ${pypi_user} --password ${pypi_pw}
+	poetry publish --build --dry-run --username __token__ --password ${pypi_token}
 	@if git show-ref --tags ${PROJ_VERSION} --quiet; then \
 		echo "tag for ${PROJ_VERSION} exists, delete it? [y/N] " && \
-		read ans && [ $${ans:-N} = y ] && \
+		read ans && ([ $${ans:-N} = y ] && \
 		git tag -d ${PROJ_VERSION} && \
-		git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}'; \
+		git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}') || true; \
 	else \
 		git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}'; \
 	fi
 	git push -f origin refs/tags/${PROJ_VERSION}
 	rm -rf dist
-	poetry publish --build --username ${pypi_user} --password ${pypi_pw}
+	poetry publish --build --username __token__ --password ${pypi_token}
