@@ -8,6 +8,10 @@ A storage backend for Django that uses [Backblaze's B2 APIs](https://www.backbla
 
 Implementation wraps [Official Python SDK](https://github.com/Backblaze/b2-sdk-python)
 
+## Changelog / Releases
+
+See [https://github.com/ehossack/django-backblaze-b2/releases](https://github.com/ehossack/django-backblaze-b2/releases)
+
 ## How to use
 
 1. Install from this repo, or install from PyPi: `pip install django-backblaze-b2`
@@ -157,7 +161,7 @@ or use `cov.xml` in your favourite IDE like VSCode
 
 ### Releasing
 
-1. `make publish-to-pypi`
+1. `make release`
 
 ### Cleanup
 
