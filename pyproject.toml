@@ -60,7 +60,7 @@ flake8 = "^5.0"
 pytest-cov = "^4.0"
 pytest-django = "^4.5"
 pytest-pythonpath = "^0.7"
-docutils = "^0.19"
+docutils = "^0.20"
 toml = "^0.10.2"
 
 [tool.poetry.group.dev.dependencies]
