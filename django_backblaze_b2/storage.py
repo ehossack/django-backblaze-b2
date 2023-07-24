@@ -4,11 +4,10 @@ from logging import getLogger
 from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
 
 from b2sdk.account_info import InMemoryAccountInfo
-from b2sdk.account_info.abstract import AbstractAccountInfo
 from b2sdk.account_info.sqlite_account_info import SqliteAccountInfo
 from b2sdk.cache import AuthInfoCache
 from b2sdk.exception import FileOrBucketNotFound, NonExistentBucket
-from b2sdk.v2 import B2Api, Bucket
+from b2sdk.v2 import AbstractAccountInfo, B2Api, Bucket
 from django.core.cache.backends.base import BaseCache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File

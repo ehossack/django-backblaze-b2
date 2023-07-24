@@ -15,6 +15,7 @@ from django.contrib.auth.models import User
 from django.core.files import File
 from django.http import FileResponse
 from django.test import Client
+
 from django_backblaze_b2 import __version__
 from django_backblaze_b2.storages import _SdkBucketDict
 
@@ -59,7 +60,7 @@ def test_uploads_bytes_to_bucket(tempfile):
         bucket.upload_bytes.assert_called_with(
             data_bytes=tempfile.read(),
             file_name=f"uploads/{tempfile.name}",
-            file_infos={},
+            file_info={},
         )
         get_download_url.assert_called_with(bucket_name="django", file_name=f"uploads/{tempfile.name}")
 
@@ -90,7 +91,7 @@ def test_works_with_field_file_write_operation(tempfile):
         bucket.upload_bytes.assert_called_with(
             data_bytes=b"new-contents",
             file_name=f"uploads/{tempfile.name}",
-            file_infos={},
+            file_info={},
         )
 
 
