@@ -78,7 +78,7 @@ class B2File(File):
         self._bucket.upload_bytes(
             data_bytes=content.read(),
             file_name=self.name,
-            file_infos=self._file_metadata,
+            file_info=self._file_metadata,
         )
         self._has_unwritted_data = False
         return self.name
