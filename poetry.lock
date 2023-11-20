@@ -19,13 +19,13 @@ tests = ["mypy (>=0.800)", "pytest", "pytest-asyncio"]
 
 [[package]]
 name = "b2sdk"
-version = "1.24.1"
+version = "1.25.0"
 description = "Backblaze B2 SDK"
 optional = false
 python-versions = "*"
 files = [
-    {file = "b2sdk-1.24.1-py3-none-any.whl", hash = "sha256:33354fd65c306dfe72ee4ecc341a9126d11dd9ef0c3c5cbde97910ebc4f2f794"},
-    {file = "b2sdk-1.24.1.tar.gz", hash = "sha256:4e9f518edc9ba824b1075805657ae3c0d2789a6c25f8e593cd5c87776e7425ab"},
+    {file = "b2sdk-1.25.0-py3-none-any.whl", hash = "sha256:e5d7489164399d7a34582c96caec3687234cf7dd6218af375eac1df2905c86ed"},
+    {file = "b2sdk-1.25.0.tar.gz", hash = "sha256:94696b1ea882ea301d6f4b28c6a257f8915453727940cc694dfcc74c24b5dcb7"},
 ]
 
 [package.dependencies]
@@ -36,7 +36,7 @@ tqdm = ">=4.5.0,<5.0.0"
 typing-extensions = {version = ">=4.7.1", markers = "python_version < \"3.12\""}
 
 [package.extras]
-doc = ["sadisplay", "sphinx (<6.0)", "sphinx-autobuild", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "sphinxcontrib-plantuml"]
+doc = ["sadisplay", "sphinx (<6.0)", "sphinx-autobuild", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "sphinxcontrib-plantuml", "tornado (>=6.3.3)"]
 
 [[package]]
 name = "black"
