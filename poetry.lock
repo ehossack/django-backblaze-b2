@@ -19,24 +19,26 @@ tests = ["mypy (>=0.800)", "pytest", "pytest-asyncio"]
 
 [[package]]
 name = "b2sdk"
-version = "1.24.1"
+version = "1.27.0"
 description = "Backblaze B2 SDK"
 optional = false
 python-versions = "*"
 files = [
-    {file = "b2sdk-1.24.1-py3-none-any.whl", hash = "sha256:33354fd65c306dfe72ee4ecc341a9126d11dd9ef0c3c5cbde97910ebc4f2f794"},
-    {file = "b2sdk-1.24.1.tar.gz", hash = "sha256:4e9f518edc9ba824b1075805657ae3c0d2789a6c25f8e593cd5c87776e7425ab"},
+    {file = "b2sdk-1.27.0-py3-none-any.whl", hash = "sha256:8b3a38d852a614d680a7010e45c9c5c66bf9db50db68dbd5683882832574eecd"},
+    {file = "b2sdk-1.27.0.tar.gz", hash = "sha256:7090f75a1a9736785209edb1090a1a40048174c0fa34a31b86db7420e72a1d99"},
 ]
 
 [package.dependencies]
 importlib-metadata = {version = ">=3.3.0", markers = "python_version < \"3.8\""}
 logfury = ">=1.0.1,<2.0.0"
+packaging = ">=21.0"
 requests = ">=2.9.1,<3.0.0"
+setuptools = ">=60.0"
 tqdm = ">=4.5.0,<5.0.0"
 typing-extensions = {version = ">=4.7.1", markers = "python_version < \"3.12\""}
 
 [package.extras]
-doc = ["sadisplay", "sphinx (<6.0)", "sphinx-autobuild", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "sphinxcontrib-plantuml"]
+doc = ["sadisplay", "sphinx (<6.0)", "sphinx-autobuild", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "sphinxcontrib-plantuml", "tornado (>=6.3.3)"]
 
 [[package]]
 name = "black"
@@ -636,6 +638,22 @@ urllib3 = ">=1.21.1,<1.27"
 [package.extras]
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
+
+[[package]]
+name = "setuptools"
+version = "68.0.0"
+description = "Easily download, build, install, upgrade, and uninstall Python packages"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "setuptools-68.0.0-py3-none-any.whl", hash = "sha256:11e52c67415a381d10d6b462ced9cfb97066179f0e871399e006c4ab101fc85f"},
+    {file = "setuptools-68.0.0.tar.gz", hash = "sha256:baf1fdb41c6da4cd2eae722e135500da913332ab3f2f5c7d33af9b492acb5235"},
+]
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-hoverxref (<2)", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (==0.8.3)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
+testing = ["build[virtualenv]", "filelock (>=3.4.0)", "flake8-2020", "ini2toml[lite] (>=0.9)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pip (>=19.1)", "pip-run (>=8.8)", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-ruff", "pytest-timeout", "pytest-xdist", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+testing-integration = ["build[virtualenv]", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
 
 [[package]]
 name = "sqlparse"
