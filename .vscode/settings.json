@@ -10,25 +10,18 @@
   "[markdown]": {
     "editor.formatOnSave": false
   },
-  "restructuredtext.confPath": "",
-  "python.pythonPath": ".venv/bin/python",
-  "python.formatting.provider": "black",
-  "python.formatting.autopep8Args": [
-    "--max-line-length",
-    "120"
-  ],
-  "python.linting.enabled": true,
-  "python.linting.flake8Enabled": true,
-  "python.linting.pylintEnabled": false,
-  "python.linting.lintOnSave": true,
-  "python.linting.flake8CategorySeverity.W": "Error",
-  "python.linting.mypyEnabled": true,
-  "python.linting.mypyArgs": [
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+  },
+  "python.analysis.autoImportCompletions": false,
+  "python.testing.pytestEnabled": true,
+  "python.defaultInterpreterPath": ".venv/bin/python",
+  "mypy.runUsingActiveInterpreter": true,
+  "mypy.targets": [ // hack, see: https://github.com/matangover/mypy-vscode/issues/35
     "--follow-imports=silent",
     "--show-column-numbers"
   ],
-  "python.analysis.autoImportCompletions": false,
-  "python.testing.pytestEnabled": true,
   "prettier.enable": false,
   "files.exclude": {
     "**/__pycache__/": true,
@@ -39,5 +32,4 @@
   "cSpell.words": [
     "deconstructible"
   ],
-  "mypy.runUsingActiveInterpreter": true,
 }

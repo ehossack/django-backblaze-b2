@@ -33,6 +33,8 @@ class ModelWithFiles(models.Model):
         blank=True,
     )
 
+    objects = models.Manager()
+
     def __str__(self) -> str:
         return (
             f"f={self.b2_storagefile or '<none>'}"

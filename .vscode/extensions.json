@@ -1,9 +1,8 @@
 {
     "recommendations": [
         "ms-vscode.makefile-tools",
-        "ms-python.black-formatter",
         "matangover.mypy",
-        "ms-python.flake8",
-        "mikestead.dotenv"
+        "mikestead.dotenv",
+        "charliermarsh.ruff"
     ]
 }
