@@ -24,13 +24,13 @@ cleanup: clean-django-files cleanup-docker
 
 lint: clean-django-files
 	for module in django_backblaze_b2 tests sample_app; do \
-		poetry run mypy -p $$module && \
-		poetry run flake8 $$module || exit 1; \
+		poetry run mypy -p $$module || exit 1; \
 	done
-	poetry run black --check .
+	poetry run ruff check .
+	poetry run ruff format --check .
 
 format:
-	poetry run black .
+	poetry run ruff format .
 
 test: tests/test_project/files/migrations/0001_initial.py
 	poetry run pytest tests --maxfail=2
@@ -112,7 +112,7 @@ FROM python:3.11
 COPY requirements.txt poetry.* pyproject.toml ./
 RUN pip install -r requirements.txt
 RUN poetry config virtualenvs.create false && poetry install
-RUN sed -i 's/python = "^3.7.1"/python = "^3.11.0"/g' pyproject.toml && \
+RUN sed -i 's/python = "^3.8.1"/python = "^3.11.0"/g' pyproject.toml && \
 	poetry add django@latest
 COPY django_backblaze_b2 ./django_backblaze_b2
 COPY setup.* README.md ./
