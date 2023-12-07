@@ -98,13 +98,11 @@ TIME_ZONE = "UTC"
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.1/howto/static-files/
+# https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "/static/"
 
@@ -115,7 +113,7 @@ sys.path.append(str(BASE_DIR.parent.parent.resolve()))
 sys.path.append(str(BASE_DIR.resolve()))
 
 INSTALLED_APPS = ["tests.test_project.files.apps.FilesConfig"] + INSTALLED_APPS
-DEFAULT_FILE_STORAGE = "django_backblaze_b2.storage.BackblazeB2Storage"
+STORAGES = {"default": {"BACKEND": "django_backblaze_b2.storage.BackblazeB2Storage"}}
 
 BACKBLAZE_CONFIG: Dict[str, Any] = {
     "validate_on_init": False,

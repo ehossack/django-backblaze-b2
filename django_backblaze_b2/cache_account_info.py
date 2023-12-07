@@ -215,7 +215,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         return tuples
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}{{cache_name={self._cache_name},cache={self.cache}}}"
+        return f"{self.__class__.__name__}{{cache_name={self._cache_name}, cache={self.cache}}}"
 
 
 def _bucket_cachekey(bucket_name: str) -> str:

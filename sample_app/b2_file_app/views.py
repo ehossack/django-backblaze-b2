@@ -4,7 +4,7 @@ from django.forms import ModelForm
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from .models import ModelWithFiles  # type: ignore
+from .models import ModelWithFiles
 
 
 def index(request: HttpRequest) -> HttpResponse:

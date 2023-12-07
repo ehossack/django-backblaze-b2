@@ -108,11 +108,11 @@ cleanup-docker:
 	fi
 
 define DOCKERFILE
-FROM python:3.11
+FROM python:3.12
 COPY requirements.txt poetry.* pyproject.toml ./
 RUN pip install -r requirements.txt
 RUN poetry config virtualenvs.create false && poetry install
-RUN sed -i 's/python = "^3.8.1"/python = "^3.11.0"/g' pyproject.toml && \
+RUN sed -i 's/python = "^3.8.1"/python = "^3.12.0"/g' pyproject.toml && \
 	poetry add django@latest
 COPY django_backblaze_b2 ./django_backblaze_b2
 COPY setup.* README.md ./

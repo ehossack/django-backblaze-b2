@@ -140,14 +140,14 @@ Contributions welcome!
 * (optional) docker - run sample app
 
 #### Version compatibility reminder
-
+[link](https://devguide.python.org/versions/)
 | Ver  | Status   |  EOL       |
 | ---- | -------- | ---------- |
-| 3.11 | buffix   | 2027-10    |
-| 3.10 | bugfix   | 2026-10    |
-| 3.9  | bugfix   | 2025-10    |
-| 3.8  | bugfix   | 2024-10    |
-| 3.7  | security | 2023-06-27 |
+| 3.12 | bugfix   | 2028-10    |
+| 3.11 | bugfix   | 2027-10    |
+| 3.10 | security | 2026-10    |
+| 3.9  | security | 2025-10    |
+| 3.8  | security | 2024-10    |
 
 ### Running
 

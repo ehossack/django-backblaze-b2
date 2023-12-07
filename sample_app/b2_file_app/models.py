@@ -1,6 +1,11 @@
 from django.db import models
 
-from django_backblaze_b2 import BackblazeB2Storage, LoggedInStorage, PublicStorage, StaffStorage
+from django_backblaze_b2 import (
+    BackblazeB2Storage,
+    LoggedInStorage,
+    PublicStorage,
+    StaffStorage,
+)
 
 
 class ModelWithFiles(models.Model):

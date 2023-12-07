@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-backblaze-b2"
-version = "4.0.2"
+version = "5.0.0"
 description = "A Django app to use backblaze b2 as storage."
 authors = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
 maintainers = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
@@ -23,11 +23,11 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Development Status :: 5 - Production/Stable",
     "Typing :: Typed",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
@@ -37,8 +37,8 @@ include = ["py.typed"]
 
 [tool.poetry.dependencies]
 python = "^3.8.1"
-b2sdk = ">=1.11.0"
-django = ">=3.2"
+b2sdk = ">=1.23.0"
+django = ">=4.2"
 typing-extensions = "^4.0.1"
 
 [tool.poetry.group.dev.dependencies]
@@ -54,7 +54,7 @@ toml = "^0.10.2"
 ruff = "^0.1.7"
 
 [build-system]
-requires = ["poetry>=1.2.0"]
+requires = ["poetry>=1.5.2"]
 build-backend = "poetry.masonry.api"
 
 [tool.ruff]
