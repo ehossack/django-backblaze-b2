@@ -108,12 +108,16 @@ cleanup-docker:
 	fi
 
 define DOCKERFILE
-FROM python:3.12
+ARG PYTHON_VER=3.12
+FROM python:$${PYTHON_VER}
 COPY requirements.txt poetry.* pyproject.toml ./
 RUN pip install -r requirements.txt
-RUN poetry config virtualenvs.create false && poetry install
-RUN sed -i 's/python = "^3.8.1"/python = "^3.12.0"/g' pyproject.toml && \
-	poetry add django@latest
+ARG PYTHON_VER
+ARG DJANGO_VER
+RUN poetry config virtualenvs.create false && poetry install --no-root
+RUN sed -i 's/python = "^3.8.1"/python = "^'"$$PYTHON_VER"'.0"/g' pyproject.toml && \
+	poetry add django@~$${DJANGO_VER}
+RUN cat pyproject.toml
 COPY django_backblaze_b2 ./django_backblaze_b2
 COPY setup.* README.md ./
 RUN poetry build && \
@@ -129,13 +133,16 @@ CMD python sample_app/manage.py makemigrations b2_file_app && \
 endef
 export DOCKERFILE
 
-run-sample-proj:
+run-sample-proj-on-django-%:
 	@echo "Build dockerfile b2-django-sample:dev"
-	@echo "$$DOCKERFILE" | docker build -t b2-django-sample:dev -f- . 
+	@echo "$$DOCKERFILE" | docker build -t b2-django-sample:dev --build-arg DJANGO_VER=$* -f- . 
 	touch sample_app/sample_app/settings.env
 	docker run --rm -p 8000:8000 \
 		--env-file sample_app/sample_app/settings.env \
 		-it b2-django-sample:dev
+
+run-sample-proj:
+	$(MAKE) run-sample-proj-on-django-4.2
 
 release: publish-to-pypi
 	gh release create ${PROJ_VERSION} --notes '${VER_DESCRIPTION}'
