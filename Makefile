@@ -9,7 +9,7 @@ setup:
 	echo "$(firstword ${pyversions})" > .python-version
 	pyenv install -s $(firstword ${pyversions})
 	pip install -r requirements.txt
-	poetry install --sync
+	poetry install --sync --no-root
 
 require-var-%:
 	@if [ -z '${${*}}' ]; then echo 'ERROR: variable $* not set' && exit 1; fi

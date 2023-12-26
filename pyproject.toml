@@ -42,7 +42,6 @@ django = ">=4.2"
 typing-extensions = "^4.0.1"
 
 [tool.poetry.group.dev.dependencies]
-isort = "^5.11.5"
 django-stubs = "^4.2.7"
 pytest = "^7.4"
 mypy = ">=0.8"
@@ -61,7 +60,7 @@ build-backend = "poetry.masonry.api"
 exclude = [".git", "__pycache__", ".mypy_stubs"]
 ignore = []
 line-length = 120
-select = ["C9", "E", "F", "N", "W"]
+select = ["C9", "E", "F", "I", "N", "W"]
 
 [tool.ruff.mccabe]
 max-complexity = 10
