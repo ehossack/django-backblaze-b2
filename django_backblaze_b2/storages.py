@@ -1,10 +1,9 @@
 import re
 from typing import Dict, Optional, cast
-from typing_extensions import TypedDict
 
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
 
 from django_backblaze_b2.options import BackblazeB2StorageOptions, CDNConfig
 from django_backblaze_b2.storage import BackblazeB2Storage, logger
