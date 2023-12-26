@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-backblaze-b2"
-version = "5.0.0"
+version = "5.0.1"
 description = "A Django app to use backblaze b2 as storage."
 authors = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
 maintainers = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
@@ -12,11 +12,9 @@ keywords = ["django", "storage", "backblaze", "b2", "cloud"]
 classifiers = [
     "Environment :: Web Environment",
     "Framework :: Django",
-    "Framework :: Django :: 3.0",
-    "Framework :: Django :: 3.1",
     "Framework :: Django :: 3.2",
-    "Framework :: Django :: 4.0",
-    "Framework :: Django :: 4.1",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
@@ -38,7 +36,7 @@ include = ["py.typed"]
 [tool.poetry.dependencies]
 python = "^3.8.1"
 b2sdk = ">=1.23.0"
-django = ">=4.2"
+django = ">=3.2"
 typing-extensions = "^4.0.1"
 
 [tool.poetry.group.dev.dependencies]
