@@ -1,6 +1,6 @@
 from io import BytesIO
 from logging import getLogger
-from typing import IO, Any, Callable, Dict, Optional
+from typing import IO, Any, Callable, Dict, Optional, Union
 
 from b2sdk.v2 import Bucket
 from django.core.files.base import File
@@ -27,15 +27,13 @@ class B2File(File):
         self._has_unwritted_data: bool = False
         self._contents: Optional[IO] = None
 
-    # https://github.com/python/mypy/issues/4125 -- kinda makes you wonder why we like mypy?
-    @property  # type: ignore
-    def file(self) -> IO[Any]:  # type: ignore
+    @property
+    def file(self) -> Union[IO[Any], None]:
         if self._contents is None:
             self._contents = self._read_file_contents()
         return self._contents
 
-    # https://github.com/python/mypy/issues/1465
-    @file.setter  # type: ignore
+    @file.setter
     def file(self, value: IO[Any]) -> None:
         self._contents = value
 
@@ -54,7 +52,7 @@ class B2File(File):
         return self._size
 
     def read(self, num_bytes: Optional[int] = None) -> bytes:
-        return self.file.read(num_bytes if isinstance(num_bytes, int) else -1)
+        return self.file.read(num_bytes if isinstance(num_bytes, int) else -1) if self.file else bytes()
 
     def write(self, content) -> int:
         if "w" not in self._mode:
@@ -65,9 +63,10 @@ class B2File(File):
         return len(content)
 
     def close(self) -> None:
-        if self._has_unwritted_data:
-            self.save_and_retrieve_file(self.file)
-        self.file.close()
+        if self.file:
+            if self._has_unwritted_data:
+                self.save_and_retrieve_file(self.file)
+            self.file.close()
 
     def save_and_retrieve_file(self, content: IO[Any]) -> str:
         """

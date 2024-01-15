@@ -13,28 +13,28 @@ class ModelWithFiles(models.Model):
         name="b2_storagefile",
         upload_to="uploads",
         verbose_name="B2 Storage File",
-        storage=BackblazeB2Storage,  # type: ignore
+        storage=BackblazeB2Storage,
         blank=True,
     )
     public_file = models.FileField(
         name="public_file",
         upload_to="uploads",
         verbose_name="Public File",
-        storage=PublicStorage,  # type: ignore
+        storage=PublicStorage,
         blank=True,
     )
     logged_in_file = models.FileField(
         name="logged_in_file",
         upload_to="uploads",
         verbose_name="Logged-In File",
-        storage=LoggedInStorage,  # type: ignore
+        storage=LoggedInStorage,
         blank=True,
     )
     staff_file = models.FileField(
         name="staff_file",
         upload_to="uploads",
         verbose_name="Staff-Only File",
-        storage=StaffStorage,  # type: ignore
+        storage=StaffStorage,
         blank=True,
     )
 
