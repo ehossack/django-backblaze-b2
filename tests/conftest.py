@@ -1,3 +1,4 @@
+import logging
 import random
 import string
 
@@ -15,3 +16,8 @@ def tempfile() -> File:
     from django.core.files.uploadedfile import SimpleUploadedFile
 
     return SimpleUploadedFile(f"filename-{randomword()}.pdf", b"file-contents")  # must be bytestring
+
+
+@pytest.fixture(autouse=True)
+def debug_logging() -> None:
+    logging.getLogger("django-backblaze-b2").setLevel(logging.DEBUG)

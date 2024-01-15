@@ -56,7 +56,7 @@ def get_default_b2_storage_options() -> BackblazeB2StorageOptions:
     }
 
 
-class ProxiedBucketNames(TypedDict):
+class ProxiedBucketNames(TypedDict, total=False):
     public: Optional[str]
     logged_in: Optional[str]
     staff: Optional[str]
