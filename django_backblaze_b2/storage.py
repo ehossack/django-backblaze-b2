@@ -288,8 +288,7 @@ class BackblazeB2Storage(Storage):
             if file_info and float(file_info.get("uploadTimestamp", 0)) > 0:
                 timestamp = float(file_info["uploadTimestamp"]) / 1000.0
                 if settings.USE_TZ:
-                    # Safe to use .replace() because UTC doesn't have DST
-                    return datetime.utcfromtimestamp(timestamp).replace(tzinfo=timezone.utc)
+                    return datetime.fromtimestamp(timestamp, timezone.utc)
                 return datetime.fromtimestamp(timestamp)
         except ValueError as e:
             raise B2FileInformationNotAvailableException(f"'uploadTimestamp' from API not valid for {name}: {e}")
