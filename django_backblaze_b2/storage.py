@@ -13,7 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
-from typing_extensions import NotRequired, TypedDict, Unpack
+from typing_extensions import NotRequired, TypedDict, TypeVar, Unpack
 
 from django_backblaze_b2.b2_file import B2File
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
@@ -57,16 +57,15 @@ class BackblazeB2Storage(Storage):
     """Storage class which fulfills the Django Storage contract through b2 apis"""
 
     def __init__(self, **kwargs: Unpack[BackblazeB2StorageConstructorArgs]):
-        opts_from_kwargs = kwargs.pop("opts", PossibleB2StorageOptions())
-        if opts_from_kwargs and kwargs:
-            raise ImproperlyConfigured("Can only specify opts or keyword args, not both!")
-        options = opts_from_kwargs or kwargs
-        self._validate_options(options)
-        opts = self._get_options_from_django_settings(options)
-        _merge(opts, options)  # type: ignore
-        log_opts = opts.copy()
-        log_opts.update({"application_key_id": "<redacted>", "application_key": "<redacted>"})
-        logger.debug(f"Initializing {self.__class__.__name__} with options {log_opts}")
+        constructor_options = self._extract_constructor_options(
+            cast(PossibleB2StorageOptions, kwargs), kwargs.pop("opts", PossibleB2StorageOptions())
+        )
+        django_settings_options = self._get_options_from_django_settings()
+        opts = _merge(source=constructor_options, into=django_settings_options)  # type: ignore
+        logger.debug(
+            f"Initializing {self.__class__.__name__} with options "
+            + str({**opts, "application_key_id": "<redacted>", "application_key": "<redacted>"})
+        )
 
         self._bucket_name = opts["bucket"]
         self._default_file_metadata = opts["default_file_info"]
@@ -85,7 +84,16 @@ class BackblazeB2Storage(Storage):
             if opts["validate_on_init"]:
                 self._get_or_create_bucket(opts["non_existent_bucket_details"])
 
-    def _get_options_from_django_settings(self, kwarg_opts: PossibleB2StorageOptions) -> BackblazeB2StorageOptions:
+    def _extract_constructor_options(
+        self, constructor_kwargs: PossibleB2StorageOptions, opts_args: PossibleB2StorageOptions
+    ) -> PossibleB2StorageOptions:
+        if constructor_kwargs and opts_args:
+            raise ImproperlyConfigured("Can only specify opts or keyword args, not both!")
+        options = constructor_kwargs or opts_args
+        self._validate_options(options, from_constructor=True)
+        return options
+
+    def _get_options_from_django_settings(self) -> BackblazeB2StorageOptions:
         """Setting terminology taken from:
         https://b2-sdk-python.readthedocs.io/en/master/glossary.html#term-application-key-ID
         kwargOpts available for subclasses
@@ -104,7 +112,7 @@ class BackblazeB2Storage(Storage):
         opts.update(settings.BACKBLAZE_CONFIG)  # type: ignore
         return opts
 
-    def _validate_options(self, options: PossibleB2StorageOptions) -> None:
+    def _validate_options(self, options: PossibleB2StorageOptions, from_constructor: bool = False) -> None:
         unrecognized_options = [k for k in options.keys() if k not in get_default_b2_storage_options().keys()]
         if unrecognized_options:
             raise ImproperlyConfigured(f"Unrecognized options: {unrecognized_options}")
@@ -295,20 +303,25 @@ class BackblazeB2Storage(Storage):
         return self.get_created_time(name)
 
 
-def _merge(target: Dict, source: Dict, path=None) -> Dict:
+T = TypeVar("T")
+
+
+def _merge(source: Dict, into: T, path=None) -> T:
     """merges b into a
     https://stackoverflow.com/a/7205107/11076240
     """
+    target = cast(dict, into)  # easier to read 'target' within function body
+    merged = target.copy()
     if path is None:
         path = []
     for key in source:
         if key in target:
             printable_path = ".".join(path + [str(key)])
             if isinstance(target[key], dict) and isinstance(source[key], dict):
-                _merge(target[key], source[key], path + [str(key)])
+                merged[key] = _merge(source=source[key], into=target[key], path=path + [str(key)])
             elif target[key] != source[key]:
-                logger.debug(f"Overriding setting {printable_path} with value {source[key]}")
-                target[key] = source[key]
+                logger.debug(f"Overriding setting {printable_path} '{target[key]}' with value '{source[key]}'")
+                merged[key] = source[key]
         else:
-            target[key] = source[key]
-    return target
+            merged[key] = source[key]
+    return cast(T, merged)
