@@ -24,7 +24,7 @@ cleanup: clean-django-files cleanup-docker
 
 lint: clean-django-files
 	for module in django_backblaze_b2 tests sample_app; do \
-		poetry run mypy -p $$module || exit 1; \
+		poetry run mypy -p $$module --warn-unused-ignores --enable-error-code ignore-without-code || exit 1; \
 	done
 	poetry run ruff check .
 	poetry run ruff format --check .

@@ -9,19 +9,19 @@ class Files(models.Model):
         name="public_file",
         upload_to="uploads",
         verbose_name="Public File",
-        storage=PublicStorage,  # type: ignore
+        storage=PublicStorage,
     )
     logged_in_file = models.FileField(
         name="logged_in_file",
         upload_to="uploads",
         verbose_name="Logged-In File",
-        storage=LoggedInStorage,  # type: ignore
+        storage=LoggedInStorage,
     )
     staff_file = models.FileField(
         name="staff_file",
         upload_to="uploads",
         verbose_name="Staff-Only File",
-        storage=StaffStorage,  # type: ignore
+        storage=StaffStorage,
     )
 
     def __str__(self) -> str:

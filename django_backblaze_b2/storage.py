@@ -61,7 +61,7 @@ class BackblazeB2Storage(Storage):
             cast(PossibleB2StorageOptions, kwargs), kwargs.pop("opts", PossibleB2StorageOptions())
         )
         django_settings_options = self._get_options_from_django_settings()
-        opts = _merge(source=constructor_options, into=django_settings_options)  # type: ignore
+        opts = _merge(source=constructor_options, into=django_settings_options)  # type: ignore[arg-type]
         logger.debug(
             f"Initializing {self.__class__.__name__} with options "
             + str({**opts, "application_key_id": "<redacted>", "application_key": "<redacted>"})
@@ -109,7 +109,7 @@ class BackblazeB2Storage(Storage):
             )
         self._validate_options(cast(PossibleB2StorageOptions, settings.BACKBLAZE_CONFIG))
         opts = get_default_b2_storage_options()
-        opts.update(settings.BACKBLAZE_CONFIG)  # type: ignore
+        opts.update(settings.BACKBLAZE_CONFIG)  # type: ignore[typeddict-item]
         return opts
 
     def _validate_options(self, options: PossibleB2StorageOptions, from_constructor: bool = False) -> None:
