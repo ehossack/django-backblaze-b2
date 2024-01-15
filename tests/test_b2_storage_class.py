@@ -227,7 +227,7 @@ def test_get_created_time(settings):
 
         created_time = storage.get_created_time("some_name.txt")
 
-        assert created_time == datetime.utcfromtimestamp(current_utc_time_millis / 1000).replace(tzinfo=timezone.utc)
+        assert created_time == datetime.fromtimestamp(current_utc_time_millis / 1000, timezone.utc)
 
 
 def test_get_modified_time(settings):
@@ -246,7 +246,7 @@ def test_get_modified_time(settings):
 
         modified_time = storage.get_modified_time("some_name.txt")
 
-        assert modified_time == datetime.utcfromtimestamp(current_utc_time_millis / 1000).replace(tzinfo=timezone.utc)
+        assert modified_time == datetime.fromtimestamp(current_utc_time_millis / 1000, timezone.utc)
         assert modified_time == storage.get_created_time("some_name.txt")
 
 
