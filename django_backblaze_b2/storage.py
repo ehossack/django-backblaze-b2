@@ -13,13 +13,14 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict, Unpack
 
 from django_backblaze_b2.b2_file import B2File
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
 from django_backblaze_b2.options import (
     BackblazeB2StorageOptions,
     DjangoCacheAccountInfoConfig,
+    PossibleB2StorageOptions,
     SqliteAccountInfoConfig,
     get_default_b2_storage_options,
 )
@@ -47,15 +48,22 @@ class B2FileInformationNotAvailableException(Exception):  # noqa: N818
     ...
 
 
+class BackblazeB2StorageConstructorArgs(PossibleB2StorageOptions):
+    opts: NotRequired[PossibleB2StorageOptions]
+
+
 @deconstructible
 class BackblazeB2Storage(Storage):
     """Storage class which fulfills the Django Storage contract through b2 apis"""
 
-    def __init__(self, **kwargs):
-        opts = self._get_django_settings_options(kwargs.get("opts", {}))
-        if "opts" in kwargs:
-            self._validate_options(kwargs.get("opts"))
-        _merge(opts, kwargs.get("opts", {}))
+    def __init__(self, **kwargs: Unpack[BackblazeB2StorageConstructorArgs]):
+        opts_from_kwargs = kwargs.pop("opts", PossibleB2StorageOptions())
+        if opts_from_kwargs and kwargs:
+            raise ImproperlyConfigured("Can only specify opts or keyword args, not both!")
+        options = opts_from_kwargs or kwargs
+        self._validate_options(options)
+        opts = self._get_options_from_django_settings(options)
+        _merge(opts, options)  # type: ignore
         log_opts = opts.copy()
         log_opts.update({"application_key_id": "<redacted>", "application_key": "<redacted>"})
         logger.debug(f"Initializing {self.__class__.__name__} with options {log_opts}")
@@ -77,7 +85,7 @@ class BackblazeB2Storage(Storage):
             if opts["validate_on_init"]:
                 self._get_or_create_bucket(opts["non_existent_bucket_details"])
 
-    def _get_django_settings_options(self, kwarg_opts: Dict) -> BackblazeB2StorageOptions:
+    def _get_options_from_django_settings(self, kwarg_opts: PossibleB2StorageOptions) -> BackblazeB2StorageOptions:
         """Setting terminology taken from:
         https://b2-sdk-python.readthedocs.io/en/master/glossary.html#term-application-key-ID
         kwargOpts available for subclasses
@@ -91,12 +99,12 @@ class BackblazeB2Storage(Storage):
                 "At minimum BACKBLAZE_CONFIG must contain auth 'application_key' and 'application_key_id'"
                 f"\nfound: {settings.BACKBLAZE_CONFIG}"
             )
-        self._validate_options(settings.BACKBLAZE_CONFIG)
+        self._validate_options(cast(PossibleB2StorageOptions, settings.BACKBLAZE_CONFIG))
         opts = get_default_b2_storage_options()
         opts.update(settings.BACKBLAZE_CONFIG)  # type: ignore
         return opts
 
-    def _validate_options(self, options: Dict) -> None:
+    def _validate_options(self, options: PossibleB2StorageOptions) -> None:
         unrecognized_options = [k for k in options.keys() if k not in get_default_b2_storage_options().keys()]
         if unrecognized_options:
             raise ImproperlyConfigured(f"Unrecognized options: {unrecognized_options}")

@@ -1,11 +1,11 @@
 import re
-from typing import Dict, Optional, cast
+from typing import Optional, cast
 
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 from typing_extensions import Literal, TypedDict
 
-from django_backblaze_b2.options import BackblazeB2StorageOptions, CDNConfig
+from django_backblaze_b2.options import BackblazeB2StorageOptions, CDNConfig, PossibleB2StorageOptions
 from django_backblaze_b2.storage import BackblazeB2Storage, logger
 
 
@@ -47,7 +47,7 @@ class PublicStorage(BackblazeB2Storage):
             return re.sub(r"f\d+\.backblazeb2\.com/file/[^/]+/", cdn_url_base + "/", file_url)
         return self.get_backblaze_url(name)
 
-    def _get_django_settings_options(self, kwarg_opts: Dict) -> BackblazeB2StorageOptions:
+    def _get_options_from_django_settings(self, kwarg_opts: PossibleB2StorageOptions) -> BackblazeB2StorageOptions:
         _validate_kwarg_opts(kwarg_opts)
         if kwarg_opts.get("cdn_config"):
             if not isinstance(kwarg_opts["cdn_config"], dict):
@@ -56,7 +56,7 @@ class PublicStorage(BackblazeB2Storage):
                 raise ImproperlyConfigured("cdn_config.base_url must be a string")
             if not isinstance(kwarg_opts["cdn_config"].get("include_bucket_url_segments"), bool):
                 logger.debug("will treat cdn_config.include_bucket_url_segments to False")
-        options = super()._get_django_settings_options(kwarg_opts)
+        options = super()._get_options_from_django_settings(kwarg_opts)
         _adjust_options(options, specific_bucket="public")
         return options
 
@@ -67,9 +67,9 @@ class LoggedInStorage(BackblazeB2Storage):
     def _get_file_url(self, name: str) -> str:
         return reverse("django_b2_storage:b2-logged-in", args=[name])
 
-    def _get_django_settings_options(self, kwarg_opts: Dict) -> BackblazeB2StorageOptions:
+    def _get_options_from_django_settings(self, kwarg_opts: PossibleB2StorageOptions) -> BackblazeB2StorageOptions:
         _validate_kwarg_opts(kwarg_opts)
-        options = super()._get_django_settings_options(kwarg_opts)
+        options = super()._get_options_from_django_settings(kwarg_opts)
         _adjust_options(options, specific_bucket="logged_in")
         return options
 
@@ -80,9 +80,9 @@ class StaffStorage(BackblazeB2Storage):
     def _get_file_url(self, name: str) -> str:
         return reverse("django_b2_storage:b2-staff", args=[name])
 
-    def _get_django_settings_options(self, kwarg_opts: Dict) -> BackblazeB2StorageOptions:
+    def _get_options_from_django_settings(self, kwarg_opts: PossibleB2StorageOptions) -> BackblazeB2StorageOptions:
         _validate_kwarg_opts(kwarg_opts)
-        options = super()._get_django_settings_options(kwarg_opts)
+        options = super()._get_options_from_django_settings(kwarg_opts)
         _adjust_options(options, specific_bucket="staff")
         return options
 

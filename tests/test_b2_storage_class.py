@@ -36,7 +36,7 @@ def test_requires_configuration_for_auth(settings):
         )
 
 
-def test_explicit_opts_take_precendence_over_django_config(settings):
+def test_explicit_opts_take_precedence_over_django_config(settings):
     with mock.patch.object(
         settings, "BACKBLAZE_CONFIG", _settings_dict({"bucket": "uncool-bucket"})
     ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name"):
@@ -53,6 +53,25 @@ def test_complains_with_unrecognized_options(settings):
             BackblazeB2Storage(opts={"unrecognized": "option"})
 
         assert str(error.value) == "Unrecognized options: ['unrecognized']"
+
+
+def test_kwargs_take_precedence_over_django_config(settings):
+    with mock.patch.object(
+        settings, "BACKBLAZE_CONFIG", _settings_dict({"bucket": "uncool-bucket"})
+    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name"):
+        BackblazeB2Storage(bucket="cool-bucket")
+
+        B2Api.get_bucket_by_name.assert_called_once_with("cool-bucket")
+
+
+def test_complains_with_opts_and_kwargs(settings):
+    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
+        B2Api, "authorize_account"
+    ), mock.patch.object(B2Api, "get_bucket_by_name"):
+        with pytest.raises(ImproperlyConfigured) as error:
+            BackblazeB2Storage(bucket="cool-bucket", opts={"allow_file_overwrites": True})
+
+        assert str(error.value) == "Can only specify opts or keyword args, not both!"
 
 
 def test_defaults_to_authorize_on_init(settings):
