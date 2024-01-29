@@ -19,13 +19,13 @@ tests = ["mypy (>=0.800)", "pytest", "pytest-asyncio"]
 
 [[package]]
 name = "b2sdk"
-version = "1.29.0"
+version = "1.29.1"
 description = "Backblaze B2 SDK"
 optional = false
 python-versions = "*"
 files = [
-    {file = "b2sdk-1.29.0-py3-none-any.whl", hash = "sha256:804fee2a70aa155d376cb46d4608752c40a3f3af66492e78d0392f4b71b94450"},
-    {file = "b2sdk-1.29.0.tar.gz", hash = "sha256:87fa572c6a50dbe10dc56a886fdcad7aba1ab9db12f07cfeb2b68e37eeb94ccc"},
+    {file = "b2sdk-1.29.1-py3-none-any.whl", hash = "sha256:44a63303dfc4610530cf9d3303dc565bf73eb80a75ea451bf684504843748af6"},
+    {file = "b2sdk-1.29.1.tar.gz", hash = "sha256:4da970d4fd099cf754f9d0e00bc2764c948e57f2ec86043205b3d812accaa5f0"},
 ]
 
 [package.dependencies]
