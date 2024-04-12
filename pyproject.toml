@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-backblaze-b2"
-version = "5.1.0"
+version = "6.0.0"
 description = "A Django app to use backblaze b2 as storage."
 authors = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
 maintainers = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
@@ -49,6 +49,7 @@ pytest-pythonpath = "^0.7"
 docutils = "^0.20"
 toml = "^0.10.2"
 ruff = ">=0.1.7,<0.4.0"
+types-toml = "^0.10.8.20240310"
 
 [build-system]
 requires = ["poetry>=1.5.2"]
