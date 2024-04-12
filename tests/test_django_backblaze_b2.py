@@ -7,6 +7,7 @@ from typing import Callable, Dict, Optional, Union
 from unittest import mock
 
 import pytest
+import toml
 from b2sdk.v2 import B2Api, Bucket, DownloadedFile, DownloadVersion, DownloadVersionFactory
 from b2sdk.v2.exception import FileNotPresent
 from django.contrib.auth.models import User
@@ -25,7 +26,9 @@ sdk_public_bucket_dict: _SdkBucketDict = {"bucketType": "allPublic"}
 
 
 def test_version():
-    assert __version__ == "1.0.1"
+    pyproject_contents = toml.load("pyproject.toml")
+    pyproject_version = pyproject_contents.get("tool", {}).get("poetry", {}).get("version", None)
+    assert __version__ == pyproject_version
 
 
 @pytest.mark.django_db
