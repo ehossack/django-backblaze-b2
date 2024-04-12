@@ -3,11 +3,8 @@ from hashlib import sha3_224 as hash
 from logging import getLogger
 from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
 
-from b2sdk.account_info import InMemoryAccountInfo
-from b2sdk.account_info.sqlite_account_info import SqliteAccountInfo
-from b2sdk.cache import AuthInfoCache
-from b2sdk.exception import FileOrBucketNotFound, NonExistentBucket
-from b2sdk.v2 import AbstractAccountInfo, B2Api, Bucket
+from b2sdk.v2 import AbstractAccountInfo, AuthInfoCache, B2Api, Bucket, InMemoryAccountInfo, SqliteAccountInfo
+from b2sdk.v2.exception import FileNotPresent, NonExistentBucket
 from django.core.cache.backends.base import BaseCache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
@@ -220,7 +217,7 @@ class BackblazeB2Storage(Storage):
 
                 return self._cache.get_or_set(key=cache_key, default=load_info, timeout=timeout_in_seconds)
             return self.bucket.get_file_info_by_name(name).as_dict()
-        except FileOrBucketNotFound:
+        except FileNotPresent:
             return None
 
     def _file_cache_key(self, name: str) -> str:

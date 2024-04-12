@@ -6,10 +6,8 @@ from typing import Any, Dict, Optional
 from unittest import mock
 
 import pytest
-from b2sdk.account_info.exception import CorruptAccountInfo
-from b2sdk.api import B2Api, Bucket
-from b2sdk.exception import FileNotPresent, NonExistentBucket
-from b2sdk.file_version import DownloadVersion, DownloadVersionFactory
+from b2sdk.v2 import B2Api, Bucket, DownloadVersion, DownloadVersionFactory
+from b2sdk.v2.exception import CorruptAccountInfo, FileNotPresent, NonExistentBucket
 from django.core.exceptions import ImproperlyConfigured
 
 from django_backblaze_b2 import BackblazeB2Storage
