@@ -2,7 +2,7 @@ from typing import Dict
 from unittest import mock
 
 import pytest
-from b2sdk.account_info.exception import MissingAccountData
+from b2sdk.v2.exception import MissingAccountData
 from django.core.exceptions import ImproperlyConfigured
 
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo

@@ -2,7 +2,7 @@ from typing import Any, Dict
 from unittest import mock
 
 import pytest
-from b2sdk.api import B2Api
+from b2sdk.v2 import B2Api
 from django.core.exceptions import ImproperlyConfigured
 from typing_extensions import Type
 

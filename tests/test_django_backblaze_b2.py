@@ -7,10 +7,8 @@ from typing import Callable, Dict, Optional, Union
 from unittest import mock
 
 import pytest
-from b2sdk.api import B2Api, Bucket
-from b2sdk.exception import FileNotPresent
-from b2sdk.file_version import DownloadVersion, DownloadVersionFactory
-from b2sdk.transfer.inbound.downloaded_file import DownloadedFile
+from b2sdk.v2 import B2Api, Bucket, DownloadedFile, DownloadVersion, DownloadVersionFactory
+from b2sdk.v2.exception import FileNotPresent
 from django.contrib.auth.models import User
 from django.core.files import File
 from django.http import FileResponse
