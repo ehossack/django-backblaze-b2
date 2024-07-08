@@ -144,7 +144,7 @@ run-sample-proj-on-django-%:
 run-sample-proj:
 	$(MAKE) run-sample-proj-on-django-4.2
 
-release: publish-to-pypi
+release: setup publish-to-pypi
 	gh release create ${PROJ_VERSION} --notes '${VER_DESCRIPTION}'
 
 publish-to-pypi: require-var-pypi_token
