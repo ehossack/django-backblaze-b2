@@ -62,7 +62,7 @@ test-ci:
 		python:$(firstword ${pyversions})-slim \
 		/bin/sh -c "${deps_and_test} && make lint"
 	@echo "Running tests on python $(wordlist 2,99,${pyversions})"
-	$(MAKE) -j $(addprefix run-test-in-docker-python-,$(wordlist 2,99,${pyversions}))
+	$(MAKE) -j --output-sync=target $(addprefix run-test-in-docker-python-,$(wordlist 2,99,${pyversions}))
 
 define TEST_DOCKERFILE
 ARG PYTHON_VER
