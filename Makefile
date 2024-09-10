@@ -23,6 +23,7 @@ cleanup: clean-django-files cleanup-docker
 	@echo "You may uninstall these requirements should you desire"
 
 lint: clean-django-files
+	@rm -rf .mypy_cache
 	for module in django_backblaze_b2 tests sample_app; do \
 		poetry run mypy -p $$module --warn-unused-ignores --enable-error-code ignore-without-code || exit 1; \
 	done
