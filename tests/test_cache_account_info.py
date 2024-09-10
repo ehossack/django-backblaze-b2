@@ -1,3 +1,5 @@
+import copy
+import logging
 from typing import Dict
 from unittest import mock
 
@@ -96,7 +98,8 @@ def test_raises_if_attributes_are_none():
     assert cache_account_info.get_s3_api_url() == ""
 
 
-def test_can_store_and_retrieve_values(allowed: Dict):
+def test_can_store_and_retrieve_values(allowed: Dict, caplog):
+    caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
     cache_account_info = DjangoCacheAccountInfo("test-cache")
     cache_account_info.set_auth_data(
         "account-id",
@@ -123,6 +126,51 @@ def test_can_store_and_retrieve_values(allowed: Dict):
     assert cache_account_info.get_s3_api_url() == "http://s3-api-url/"
     assert cache_account_info.get_realm() == "realm"
     assert cache_account_info.get_allowed() == allowed
+    assert ("django-backblaze-b2", logging.DEBUG, "New auth data set") == caplog.record_tuples[-2]
+    assert ("django-backblaze-b2", logging.DEBUG, "all auth values updated") == caplog.record_tuples[-1]
+
+
+def test_logs_auth_data_diff(allowed: Dict, caplog):
+    caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
+    cache_account_info = DjangoCacheAccountInfo("test-cache")
+    cache_account_info.set_auth_data(
+        "account-id",
+        "auth-token",
+        "api-url",
+        "download-url",
+        "recommended-part-size",
+        "absolute-minimum-part-size",
+        "application-key",
+        "realm",
+        "http://s3-api-url/",
+        allowed,
+        "application-key-id",
+    )
+
+    cache_account_info.set_auth_data(
+        "account-id2",
+        "auth-token2",
+        "api-url2",
+        "download-url2",
+        "recommended-part-size2",
+        "absolute-minimum-part-size2",
+        "application-key2",
+        "realm2",
+        "http://s3-api-url/2",
+        copy.deepcopy(allowed),
+        "application-key-id2",
+    )
+
+    assert ("django-backblaze-b2", logging.DEBUG, "New auth data set") == caplog.record_tuples[-2]
+    assert (
+        "django-backblaze-b2",
+        logging.DEBUG,
+        (
+            "auth values updated: "
+            "account_id, auth_token, api_url, download_url, recommended_part_size, "
+            "absolute_minimum_part_size, application_key, realm, s3_api_url, application_key_id"
+        ),
+    ) == caplog.record_tuples[-1]
 
 
 def test_get_bucket_id_when_bucket_name_set():
@@ -207,7 +255,8 @@ def test_can_refresh_entire_bucket_name_cache():
         assert bucket_tuple in cache_account_info.list_bucket_names_ids()
 
 
-def test_can_clear_cache(allowed: Dict):
+def test_can_clear_cache(allowed: Dict, caplog):
+    caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
     cache_account_info = DjangoCacheAccountInfo("test-cache")
     cache_account_info.set_auth_data(
         "account-id",
@@ -235,6 +284,7 @@ def test_can_clear_cache(allowed: Dict):
 
     assert bucket_id_or_none is None
     assert error.value is not None
+    assert ("django-backblaze-b2", logging.DEBUG, "Clearing cache info") in caplog.record_tuples
 
 
 def test_can_perform_operation_after_cache_cleared():
