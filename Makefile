@@ -143,7 +143,7 @@ run-sample-proj-on-django-%:
 		-it b2-django-sample:dev
 
 run-sample-proj:
-	$(MAKE) run-sample-proj-on-django-4.2
+	$(MAKE) run-sample-proj-on-django-5.1
 
 release: setup publish-to-pypi
 	gh release create ${PROJ_VERSION} --notes '${VER_DESCRIPTION}'
