@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.db import models
 
 from django_backblaze_b2 import (
@@ -38,7 +40,7 @@ class ModelWithFiles(models.Model):
         blank=True,
     )
 
-    objects = models.Manager()
+    objects: ClassVar[models.Manager] = models.Manager()
 
     def __str__(self) -> str:
         return (
