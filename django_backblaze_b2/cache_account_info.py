@@ -80,6 +80,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         """
         Remove all info about accounts and buckets.
         """
+        logger.debug("Clearing cache info")
         self.cache.clear()
         self.cache.set("bucket_names", [])
 
@@ -97,21 +98,31 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         allowed,
         application_key_id,
     ):
+        logger.debug("New auth data set")
+        old_value = self._cached_info()
+        new_value = {
+            "account_id": account_id,
+            "auth_token": auth_token,
+            "api_url": api_url,
+            "download_url": download_url,
+            "recommended_part_size": recommended_part_size,
+            "absolute_minimum_part_size": absolute_minimum_part_size,
+            "application_key": application_key,
+            "realm": realm,
+            "s3_api_url": s3_api_url,
+            "allowed": allowed,
+            "application_key_id": application_key_id,
+        }
+        if len(old_value.keys()) == 0:
+            logger.debug("all auth values updated")
+        else:
+            logger.debug(
+                "auth values updated: "
+                + ", ".join(dict([(k, v) for (k, v) in new_value.items() if old_value.get(k) != new_value[k]]).keys())
+            )
         self.cache.set(
             "cached_account_info",
-            {
-                "account_id": account_id,
-                "auth_token": auth_token,
-                "api_url": api_url,
-                "download_url": download_url,
-                "recommended_part_size": recommended_part_size,
-                "absolute_minimum_part_size": absolute_minimum_part_size,
-                "application_key": application_key,
-                "realm": realm,
-                "s3_api_url": s3_api_url,
-                "allowed": allowed,
-                "application_key_id": application_key_id,
-            },
+            new_value,
             timeout=None,
         )
 
