@@ -47,9 +47,12 @@ def test_raises_no_exception_when_loading_model():
 @pytest.mark.django_db
 def test_uploads_bytes_to_bucket(tempfile):
     _mock_filedoesnotexist(tempfile)
-    with _mocked_bucket(), mock.patch.object(
-        B2Api, "get_download_url_for_file_name", return_value="http://randonneurs.bc.ca"
-    ) as get_download_url:
+    with (
+        _mocked_bucket(),
+        mock.patch.object(
+            B2Api, "get_download_url_for_file_name", return_value="http://randonneurs.bc.ca"
+        ) as get_download_url,
+    ):
         from tests.test_project.files.models import Files
 
         files_object = Files.objects.create(b2_storagefile=tempfile)
@@ -152,11 +155,15 @@ def test_generates_public_file_url(tempfile):
 
 @pytest.mark.django_db
 def test_generates_public_file_url_as_raw_b2_url():
-    with _mocked_bucket(), mock.patch.object(bucket, "as_dict", return_value=sdk_public_bucket_dict), mock.patch.object(
-        B2Api,
-        "get_download_url_for_file_name",
-        side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
-    ) as get_download_url:
+    with (
+        _mocked_bucket(),
+        mock.patch.object(bucket, "as_dict", return_value=sdk_public_bucket_dict),
+        mock.patch.object(
+            B2Api,
+            "get_download_url_for_file_name",
+            side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+        ) as get_download_url,
+    ):
         from django_backblaze_b2 import PublicStorage
 
         storage = PublicStorage()
@@ -167,10 +174,14 @@ def test_generates_public_file_url_as_raw_b2_url():
 
 @pytest.mark.django_db
 def test_generates_public_file_url_as_cdn_url():
-    with _mocked_bucket(), mock.patch.object(bucket, "as_dict", return_value=sdk_public_bucket_dict), mock.patch.object(
-        B2Api,
-        "get_download_url_for_file_name",
-        side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+    with (
+        _mocked_bucket(),
+        mock.patch.object(bucket, "as_dict", return_value=sdk_public_bucket_dict),
+        mock.patch.object(
+            B2Api,
+            "get_download_url_for_file_name",
+            side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+        ),
     ):
         from django_backblaze_b2 import PublicStorage
 
@@ -183,10 +194,14 @@ def test_generates_public_file_url_as_cdn_url():
 
 @pytest.mark.django_db
 def test_generates_public_file_url_as_cdn_url_without_path():
-    with _mocked_bucket(), mock.patch.object(bucket, "as_dict", return_value=sdk_public_bucket_dict), mock.patch.object(
-        B2Api,
-        "get_download_url_for_file_name",
-        side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+    with (
+        _mocked_bucket(),
+        mock.patch.object(bucket, "as_dict", return_value=sdk_public_bucket_dict),
+        mock.patch.object(
+            B2Api,
+            "get_download_url_for_file_name",
+            side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+        ),
     ):
         from django_backblaze_b2 import PublicStorage
 
@@ -210,11 +225,15 @@ def test_generates_public_file_with_retry_if_bucket_type_missing(caplog):
             return {}
         return sdk_public_bucket_dict
 
-    with _mocked_bucket(), mock.patch.object(bucket, "as_dict", side_effect=get_dict), mock.patch.object(
-        B2Api,
-        "get_download_url_for_file_name",
-        side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
-    ) as get_download_url:
+    with (
+        _mocked_bucket(),
+        mock.patch.object(bucket, "as_dict", side_effect=get_dict),
+        mock.patch.object(
+            B2Api,
+            "get_download_url_for_file_name",
+            side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+        ) as get_download_url,
+    ):
         from django_backblaze_b2 import PublicStorage
 
         storage = PublicStorage()
