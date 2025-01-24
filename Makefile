@@ -116,7 +116,7 @@ RUN pip install -r requirements.txt
 ARG PYTHON_VER
 ARG DJANGO_VER
 RUN poetry config virtualenvs.create false && poetry install --no-root
-RUN sed -i 's/python = "^3.8.1"/python = "^'"$$PYTHON_VER"'.0"/g' pyproject.toml && \
+RUN sed -i 's/python = "^3.9.16"/python = "^'"$$PYTHON_VER"'.0"/g' pyproject.toml && \
 	poetry add django@~$${DJANGO_VER}
 RUN cat pyproject.toml
 COPY django_backblaze_b2 ./django_backblaze_b2

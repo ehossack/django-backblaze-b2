@@ -143,11 +143,11 @@ Contributions welcome!
 [link](https://devguide.python.org/versions/)
 | Ver  | Status   |  EOL       |
 | ---- | -------- | ---------- |
+| 3.13 | bugfix   | 2029-10    |
 | 3.12 | bugfix   | 2028-10    |
 | 3.11 | bugfix   | 2027-10    |
 | 3.10 | security | 2026-10    |
 | 3.9  | security | 2025-10    |
-| 3.8  | security | 2024-10    |
 
 ### Running
 

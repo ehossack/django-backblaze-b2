@@ -36,7 +36,7 @@ jobs:
             echo "BACKBLAZE_BUCKET=${TEST_BUCKET}" >> sample_app/sample_app/settings.env
             echo "BACKBLAZE_APPLICATION_KEY_ID=${TEST_BACKBLAZE_APPLICATION_KEY_ID}" >> sample_app/sample_app/settings.env
             echo "BACKBLAZE_APPLICATION_KEY=${TEST_BACKBLAZE_APPLICATION_KEY}" >> sample_app/sample_app/settings.env
-            make run-sample-proj
+            make run-sample-proj-on-django-5.1
             make run-sample-proj-on-django-5.0
             make run-sample-proj-on-django-4.2
             make run-sample-proj-on-django-3.2
