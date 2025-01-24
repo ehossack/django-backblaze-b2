@@ -35,18 +35,22 @@ def test_requires_configuration_for_auth(settings):
 
 
 def test_explicit_opts_take_precedence_over_django_config(settings):
-    with mock.patch.object(
-        settings, "BACKBLAZE_CONFIG", _settings_dict({"bucket": "uncool-bucket"})
-    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name"):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({"bucket": "uncool-bucket"})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name"),
+    ):
         BackblazeB2Storage(opts={"bucket": "cool-bucket"})
 
         B2Api.get_bucket_by_name.assert_called_once_with("cool-bucket")
 
 
 def test_complains_with_unrecognized_options(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name"):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name"),
+    ):
         with pytest.raises(ImproperlyConfigured) as error:
             BackblazeB2Storage(opts={"unrecognized": "option"})
 
@@ -54,18 +58,22 @@ def test_complains_with_unrecognized_options(settings):
 
 
 def test_kwargs_take_precedence_over_django_config(settings):
-    with mock.patch.object(
-        settings, "BACKBLAZE_CONFIG", _settings_dict({"bucket": "uncool-bucket"})
-    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name"):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({"bucket": "uncool-bucket"})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name"),
+    ):
         BackblazeB2Storage(bucket="cool-bucket")
 
         B2Api.get_bucket_by_name.assert_called_once_with("cool-bucket")
 
 
 def test_complains_with_opts_and_kwargs(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name"):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name"),
+    ):
         with pytest.raises(ImproperlyConfigured) as error:
             BackblazeB2Storage(bucket="cool-bucket", opts={"allow_file_overwrites": True})
 
@@ -73,9 +81,11 @@ def test_complains_with_opts_and_kwargs(settings):
 
 
 def test_defaults_to_authorize_on_init(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name"):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name"),
+    ):
         BackblazeB2Storage(opts={})
 
         B2Api.authorize_account.assert_called_once_with(
@@ -84,18 +94,22 @@ def test_defaults_to_authorize_on_init(settings):
 
 
 def test_defaults_to_validate_init(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name"):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name"),
+    ):
         BackblazeB2Storage(opts={})
 
         B2Api.get_bucket_by_name.assert_called_once_with("django")
 
 
 def test_defaults_to_not_creating_bucket(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket),
+    ):
         with pytest.raises(NonExistentBucket):
             BackblazeB2Storage(opts={})
 
@@ -103,10 +117,11 @@ def test_defaults_to_not_creating_bucket(settings):
 
 
 def test_can_create_bucket(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket), mock.patch.object(
-        B2Api, "create_bucket"
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket),
+        mock.patch.object(B2Api, "create_bucket"),
     ):
         BackblazeB2Storage(opts={"non_existent_bucket_details": {}})
 
@@ -115,9 +130,11 @@ def test_can_create_bucket(settings):
 
 
 def test_lazy_authorization(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name"):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name"),
+    ):
         storage = BackblazeB2Storage(opts={"authorize_on_init": False})
         B2Api.authorize_account.assert_not_called()
         B2Api.get_bucket_by_name.assert_not_called()
@@ -154,18 +171,22 @@ def test_cached_account_info(settings):
     )
     cache_account_info.save_bucket(bucket)
 
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "list_buckets"):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "list_buckets"),
+    ):
         BackblazeB2Storage(opts={"account_info": {"type": "django-cache", "cache": cache_name}})
 
         B2Api.list_buckets.assert_not_called()
 
 
 def test_lazy_bucket_non_existent(settings):
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket):
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name", side_effect=NonExistentBucket),
+    ):
         storage = BackblazeB2Storage(opts={"validate_on_init": False})
         B2Api.get_bucket_by_name.assert_not_called()
 
@@ -198,9 +219,11 @@ def test_get_available_name_with_overwrites(settings):
     )
     mocked_bucket.name = "bucket"
 
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name") as api,
+    ):
         api.return_value = mocked_bucket
         storage = BackblazeB2Storage(opts={"allow_file_overwrites": True})
 
@@ -217,9 +240,11 @@ def test_get_created_time(settings):
     )
     mocked_bucket.name = "bucket"
 
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name") as api,
+    ):
         api.return_value = mocked_bucket
         storage = BackblazeB2Storage()
 
@@ -236,9 +261,11 @@ def test_get_modified_time(settings):
     )
     mocked_bucket.name = "bucket"
 
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name") as api,
+    ):
         api.return_value = mocked_bucket
         storage = BackblazeB2Storage()
 
@@ -256,9 +283,11 @@ def test_get_size_without_caching(settings):
     )
     mocked_bucket.name = "bucket"
 
-    with mock.patch.object(
-        settings, "BACKBLAZE_CONFIG", _settings_dict({"forbid_file_property_caching": True})
-    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({"forbid_file_property_caching": True})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name") as api,
+    ):
         api.return_value = mocked_bucket
         storage = BackblazeB2Storage()
 
@@ -286,9 +315,11 @@ def test_exists_file_does_not_exist(settings):
     mocked_bucket.name = "bucketname"
     mocked_bucket.get_file_info_by_name.side_effect = FileNotPresent()
 
-    with mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})), mock.patch.object(
-        B2Api, "authorize_account"
-    ), mock.patch.object(B2Api, "get_bucket_by_name") as api:
+    with (
+        mock.patch.object(settings, "BACKBLAZE_CONFIG", _settings_dict({})),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name") as api,
+    ):
         api.return_value = mocked_bucket
         storage = BackblazeB2Storage(opts={})
 
@@ -302,11 +333,15 @@ def test_can_use_sqlite_account_info(settings, tmpdir, caplog):
     caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
     tempfile = tmpdir.mkdir("sub").join("database.sqlite3")
     tempfile.write("some-invalid-context")
-    with mock.patch.object(
-        settings,
-        "BACKBLAZE_CONFIG",
-        _settings_dict({"account_info": {"type": "sqlite", "database_path": str(tempfile)}}),
-    ), mock.patch.object(B2Api, "authorize_account"), mock.patch.object(B2Api, "get_bucket_by_name"):
+    with (
+        mock.patch.object(
+            settings,
+            "BACKBLAZE_CONFIG",
+            _settings_dict({"account_info": {"type": "sqlite", "database_path": str(tempfile)}}),
+        ),
+        mock.patch.object(B2Api, "authorize_account"),
+        mock.patch.object(B2Api, "get_bucket_by_name"),
+    ):
         with pytest.raises(CorruptAccountInfo) as error:
             BackblazeB2Storage(opts={})
 
