@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10, <4.0"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -237,7 +237,7 @@ requires-dist = [
 dev = [
     { name = "django", specifier = ">=5.2.8,<5.3" },
     { name = "django-stubs", specifier = ">=5.2,<6.0" },
-    { name = "docutils", specifier = ">=0.20,<0.22" },
+    { name = "docutils", specifier = ">=0.20,<0.24" },
     { name = "mypy", specifier = ">=1.18,<2" },
     { name = "pytest", specifier = ">=8.4,<9.0" },
     { name = "pytest-cov", specifier = ">=4.1,<7.0" },
@@ -274,8 +274,8 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "django", marker = "python_full_version < '3.15'" },
-    { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.15'" },
+    { name = "django" },
+    { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1e/1f/7a4c5f1c1b1b6573623c91c247dfe1f226ed14fa0690e218842bfb5ff88a/django_stubs_ext-6.0.9.tar.gz", hash = "sha256:6777de6d0a059f55ea1d53839de84c2ae96eae131b75fd00c3ee8f6678d9f6d7", size = 6869, upload-time = "2026-08-07T12:57:19.694Z" }
 wheels = [
@@ -290,8 +290,8 @@ resolution-markers = [
     "python_full_version >= '3.15'",
 ]
 dependencies = [
-    { name = "django", marker = "python_full_version >= '3.15'" },
-    { name = "typing-extensions", version = "4.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
+    { name = "django" },
+    { name = "typing-extensions", version = "4.16.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d9/62/de532d58736d671b9ac0c0467909a9429758ae579d636e868ce74519566b/django_stubs_ext-6.1.2.tar.gz", hash = "sha256:2142da7fffbbe897ccecf9b4c97e09ea1a2e9291760b0a824b4c402b375ce6f9", size = 7221, upload-time = "2026-10-05T06:46:43.717Z" }
 wheels = [
@@ -300,11 +300,11 @@ wheels = [
 
 [[package]]
 name = "docutils"
-version = "0.21.2"
+version = "0.23"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ae/ed/aefcc8cd0ba62a0560c3c18c33925362d46c6075480bfa4df87b28e169a9/docutils-0.21.2.tar.gz", hash = "sha256:3a6b18732edf182daa3cd12775bbb338cf5691468f91eeeb109deff6ebfa986f", size = 2204444, upload-time = "2024-04-23T18:57:18.24Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/39/a4/5180d9afc57e8fca05601dd652bdff19604c218814037fe90ffc7625a50a/docutils-0.23.tar.gz", hash = "sha256:746f5060322511280a1e50eb76846ed6bf2342984b2ac04dc42caa1a8d78799e", size = 2303823, upload-time = "2026-05-27T17:41:06.934Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/d7/9322c609343d929e75e7e5e6255e614fcc67572cfd083959cdef3b7aad79/docutils-0.21.2-py3-none-any.whl", hash = "sha256:dafca5b9e384f0e419294eb4d2ff9fa826435bf15f15b7bd45723e8ad76811b2", size = 587408, upload-time = "2024-04-23T18:57:14.835Z" },
+    { url = "https://files.pythonhosted.org/packages/32/91/30151a39f7570f448ed84529390628a651d7f27c87d73c9b887f8189695e/docutils-0.23-py3-none-any.whl", hash = "sha256:25d013af9bf23bc1c7b2b093dff4208166c53a94786c9e447808335ef1185fea", size = 634701, upload-time = "2026-05-27T17:40:58.442Z" },
 ]
 
 [[package]]
