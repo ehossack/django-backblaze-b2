@@ -16,17 +16,20 @@ classifiers = [
     "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.0",
     "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Development Status :: 5 - Production/Stable",
     "Typing :: Typed",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
@@ -35,26 +38,26 @@ classifiers = [
 include = ["py.typed"]
 
 [tool.poetry.dependencies]
-python = "^3.9.16"
+python = ">=3.10,<4.0"
 b2sdk = ">=2.0.0,<3.0.0"
 django = ">=3.2"
 typing-extensions = "^4.0.1"
 
 [tool.poetry.group.dev.dependencies]
-django-stubs = ">=4.2.7,<6.0.0"
-pytest = ">=7.4,<9.0"
-mypy = ">=0.8"
+django = ">=5.2.8,<5.3"
+django-stubs = ">=5.2,<6.0"
+pytest = ">=8.4,<9.0"
+mypy = ">=1.18,<2"
 pytest-cov = ">=4.1,<7.0"
-pytest-django = "^4.5"
-pytest-pythonpath = "^0.7"
+pytest-django = "^4.11"
 docutils = ">=0.20,<0.22"
 toml = "^0.10.2"
 ruff = ">=0.5.0,<1.0.0"
 types-toml = "^0.10.8.20240310"
 
 [build-system]
-requires = ["poetry>=1.5.2"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=2.2,<3"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 exclude = [".git", "__pycache__", ".mypy_stubs"]

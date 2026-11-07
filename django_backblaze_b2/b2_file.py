@@ -34,7 +34,7 @@ class B2File(File):
         return self._contents
 
     @file.setter
-    def file(self, value: IO[Any]) -> None:
+    def file(self, value: Optional[IO[Any]]) -> None:
         self._contents = value
 
     def _read_file_contents(self) -> BytesIO:
