@@ -7,7 +7,6 @@ from typing_extensions import Literal, TypedDict, TypeVar, override
 
 from django_backblaze_b2.options import (
     BackblazeB2StorageOptions,
-    CDNConfig,
     PossibleB2StorageOptions,
     ProxiedBucketNames,
 )
@@ -29,7 +28,6 @@ class PublicStorage(BackblazeB2Storage):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._bucket_type: Optional[Literal["allPublic", "allPrivate"]] = None
-        self._cdn_config: Optional[CDNConfig] = kwargs.get("opts", {}).get("cdn_config")
 
     @override
     def _get_file_url(self, name: str) -> str:

@@ -213,6 +213,60 @@ def test_generates_public_file_url_as_cdn_url_without_path():
 
 
 @pytest.mark.django_db
+def test_generates_public_file_url_as_cdn_url_from_django_settings(settings):
+    with (
+        _mocked_bucket(),
+        mock.patch.object(bucket, "as_dict", return_value=sdk_public_bucket_dict),
+        mock.patch.object(
+            B2Api,
+            "get_download_url_for_file_name",
+            side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+        ),
+        mock.patch.object(
+            settings,
+            "BACKBLAZE_CONFIG",
+            {
+                **settings.BACKBLAZE_CONFIG,
+                "cdn_config": {"base_url": "https://s3.randonneurs.bc.ca", "include_bucket_url_segments": False},
+            },
+        ),
+    ):
+        from django_backblaze_b2 import PublicStorage
+
+        storage = PublicStorage()
+
+        assert storage.url("some/file.jpeg") == "https://s3.randonneurs.bc.ca/some/file.jpeg"
+
+
+@pytest.mark.django_db
+def test_generates_public_file_url_preferring_constructor_cdn_config_over_django_settings(settings):
+    with (
+        _mocked_bucket(),
+        mock.patch.object(bucket, "as_dict", return_value=sdk_public_bucket_dict),
+        mock.patch.object(
+            B2Api,
+            "get_download_url_for_file_name",
+            side_effect=lambda bucket_name, file_name: f"https://f000.backblazeb2.com/file/{bucket_name}/{file_name}",
+        ),
+        mock.patch.object(
+            settings,
+            "BACKBLAZE_CONFIG",
+            {
+                **settings.BACKBLAZE_CONFIG,
+                "cdn_config": {"base_url": "https://settings.randonneurs.bc.ca", "include_bucket_url_segments": False},
+            },
+        ),
+    ):
+        from django_backblaze_b2 import PublicStorage
+
+        storage = PublicStorage(
+            opts={"cdn_config": {"base_url": "https://s3.randonneurs.bc.ca", "include_bucket_url_segments": False}}
+        )
+
+        assert storage.url("some/file.jpeg") == "https://s3.randonneurs.bc.ca/some/file.jpeg"
+
+
+@pytest.mark.django_db
 def test_generates_public_file_with_retry_if_bucket_type_missing(caplog):
     caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
     counter = 0

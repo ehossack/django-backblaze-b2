@@ -16,6 +16,7 @@ from django_backblaze_b2.b2_file import B2File
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
 from django_backblaze_b2.options import (
     BackblazeB2StorageOptions,
+    CDNConfig,
     DjangoCacheAccountInfoConfig,
     PossibleB2StorageOptions,
     SqliteAccountInfoConfig,
@@ -71,6 +72,7 @@ class BackblazeB2Storage(Storage):
             [(k, v) for k, v in opts.items() if k in ["realm", "application_key_id", "application_key"]]
         )
         self._allow_file_overwrites = opts["allow_file_overwrites"]
+        self._cdn_config: Optional[CDNConfig] = opts.get("cdn_config")
 
         self._get_account_info = self._create_account_info_callable(opts)
 
