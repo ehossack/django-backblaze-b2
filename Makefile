@@ -1,5 +1,5 @@
 .PHONY: setup cleanup lint format \
-		test test-verbose test-coverage clean-django-files \
+		test test-verbose test-coverage test-matrix clean-django-files \
 		run-django run-test-proj \
 		cleanup-docker run-sample-proj \
 		publish-to-pypi release require-var-%
@@ -62,6 +62,9 @@ test-output-coverage: tests/test_project/files/migrations/0001_initial.py
 test-ci:
 	$(MAKE) run-test-in-docker-python-$(firstword ${pyversions})-django-$(DJANGO_VER) CHECK_LINT=1
 	$(MAKE) -j2 --output-sync=target $(addprefix run-test-in-docker-python-,$(filter-out $(firstword ${pyversions})-django-$(DJANGO_VER),$(test-combinations)))
+
+test-matrix:
+	@printf '%s\n' $(test-combinations) | jq -R -s -c 'split("\n")[:-1] | map(split("-django-") | {python: .[0], django: .[1]}) | {include: .}'
 
 define TEST_DOCKERFILE
 ARG PYTHON_VER
