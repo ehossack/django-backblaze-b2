@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  matrix:
+    name: Test matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      combinations: ${{ steps.matrix.outputs.combinations }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - id: matrix
+        run: echo "combinations=$(make test-matrix)" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Python ${{ matrix.python }} / Django ${{ matrix.django }}
+    needs: matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.combinations) }}
+    env:
+      PYTHON_VER: ${{ matrix.python }}
+      DJANGO_VER: ${{ matrix.django }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.9.10"
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - name: Install dependencies
+        run: |
+          make setup
+          uv pip install --python .venv/bin/python "Django~=${DJANGO_VER}.0"
+      - name: Run tests
+        run: make test-output-coverage
+      - name: Upload test reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: tests-python-${{ matrix.python }}-django-${{ matrix.django }}
+          path: |
+            tests/test-results/
+            tests/htmlcov/
+          retention-days: 7
+
+  lint-and-build:
+    name: Lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.9.10"
+          python-version: "3.14"
+          enable-cache: true
+      - run: make setup
+      - run: make lint
+      - run: uv build --no-sources
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: distributions
+          path: dist/
+          retention-days: 7
+
+  sample-app:
+    name: Sample / Python ${{ matrix.python }} / Django ${{ matrix.django }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {python: "3.14", django: "5.2"}
+          - {python: "3.14", django: "6.1"}
+          - {python: "3.14", django: "6.0"}
+          - {python: "3.13", django: "5.1"}
+          - {python: "3.12", django: "5.0"}
+          - {python: "3.12", django: "4.2"}
+          - {python: "3.10", django: "3.2"}
+    env:
+      PYTHON_VER: ${{ matrix.python }}
+      DJANGO_VER: ${{ matrix.django }}
+      BACKBLAZE_APPLICATION_KEY_ID: test-key-id
+      BACKBLAZE_APPLICATION_KEY: test-key
+      BACKBLAZE_BUCKET: test-bucket
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Build sample image
+        run: make run-sample-proj DOCKER_RUN_FLAGS=--entrypoint=/bin/true
+      - name: Check installed sample app
+        run: |
+          docker run --rm -i --entrypoint python \
+            -e BACKBLAZE_APPLICATION_KEY_ID \
+            -e BACKBLAZE_APPLICATION_KEY \
+            -e BACKBLAZE_BUCKET \
+            -e PYTHONPATH=/app/sample_app \
+            -e DJANGO_SETTINGS_MODULE=sample_app.settings \
+            b2-django-sample:dev - < sample_app/check.py

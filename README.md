@@ -166,6 +166,17 @@ environment without syncing so the CI matrix keeps its selected Django version.
 open `test/htmlcov/index.html`
 or use `cov.xml` in your favourite IDE like VSCode
 
+### Continuous integration
+
+GitHub Actions runs linting, package builds, and the Python/Django test matrix
+on pull requests and pushes to `main`. The matrix comes from the Makefile via
+`make test-matrix`, which requires `jq`. Test reports and distributions are
+available as workflow artifacts.
+
+Sample-app checks build and install the source distribution in Docker, then
+run Django checks, migrations, and user creation with dummy B2 settings.
+These checks do not authorize with Backblaze or require repository secrets.
+
 ### Releasing
 
 1. `make release pypi_token=...`
