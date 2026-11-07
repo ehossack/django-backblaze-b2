@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 from typing import List
 
+from django import VERSION
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
@@ -113,7 +115,13 @@ sys.path.append(str(BASE_DIR.parent.parent.resolve()))
 sys.path.append(str(BASE_DIR.resolve()))
 
 INSTALLED_APPS = ["tests.test_project.files.apps.FilesConfig"] + INSTALLED_APPS
-STORAGES = {"default": {"BACKEND": "django_backblaze_b2.storage.BackblazeB2Storage"}}
+if VERSION < (4, 2):
+    DEFAULT_FILE_STORAGE = "django_backblaze_b2.storage.BackblazeB2Storage"
+else:
+    STORAGES = {
+        "default": {"BACKEND": "django_backblaze_b2.storage.BackblazeB2Storage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
 
 BACKBLAZE_CONFIG: Dict[str, Any] = {
     "validate_on_init": False,

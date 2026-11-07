@@ -15,7 +15,7 @@ See [https://github.com/ehossack/django-backblaze-b2/releases](https://github.co
 ## How to use
 
 1. Install from this repo, or install from PyPi: `pip install django-backblaze-b2`
-As tested, requires python 3.7 or greater but solely due to type annotations. PRs welcome :)
+Requires Python 3.10 or newer. See the compatibility table below.
 1. Configure your django `settings`. A minimalistic config would be:
 ```python
 CACHES = {
@@ -139,15 +139,24 @@ Contributions welcome!
 * GNU Make
 * (optional) docker - run sample app
 
-#### Version compatibility reminder
-[link](https://devguide.python.org/versions/)
-| Ver  | Status   |  EOL       |
-| ---- | -------- | ---------- |
-| 3.13 | bugfix   | 2029-10    |
-| 3.12 | bugfix   | 2028-10    |
-| 3.11 | bugfix   | 2027-10    |
-| 3.10 | security | 2026-10    |
-| 3.9  | security | 2025-10    |
+#### Version compatibility
+
+Development and the sample app default to Python 3.14 and Django 5.2 LTS.
+Tests use the latest patch release of each Django series below.
+
+| Python | Django |
+| ------ | ------ |
+| 3.10 | 3.2, 4.2, 5.0, 5.1, 5.2 |
+| 3.11 | 4.2, 5.0, 5.1, 5.2 |
+| 3.12 | 4.2, 5.0, 5.1, 5.2, 6.0, 6.1 |
+| 3.13 | 5.1, 5.2, 6.0, 6.1 |
+| 3.14 | 5.2, 6.0, 6.1 |
+
+Python 3.10 is retained as a legacy exception for Django 3.2, whose official
+Python support ends at 3.10. Python 3.9 is no longer supported by this package.
+Older Django compatibility does not imply upstream security maintenance.
+See [Python support status](https://devguide.python.org/versions/) and
+[Django supported releases](https://www.djangoproject.com/download/#supported-versions).
 
 ### Running
 

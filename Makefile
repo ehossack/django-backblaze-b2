@@ -5,11 +5,21 @@
 		publish-to-pypi release require-var-%
 
 pyversions=$(shell cat .python-versions)
+PYTHON_VER ?= $(firstword ${pyversions})
+DJANGO_VER ?= 5.2
+DOCKER_RUN_FLAGS ?= -it
+django-versions-3.10 = 3.2 4.2 5.0 5.1 5.2
+django-versions-3.11 = 4.2 5.0 5.1 5.2
+django-versions-3.12 = 4.2 5.0 5.1 5.2 6.0 6.1
+django-versions-3.13 = 5.1 5.2 6.0 6.1
+django-versions-3.14 = 5.2 6.0 6.1
+test-combinations = $(foreach python,$(pyversions),$(foreach django,$(django-versions-$(python)),$(python)-django-$(django)))
+TEST_OUTPUT_DIR ?= tests
 setup:
 	echo "$(firstword ${pyversions})" > .python-version
 	pyenv install -s $(firstword ${pyversions})
 	pip install -r requirements.txt
-	poetry install --sync --no-root
+	poetry sync --no-root
 
 require-var-%:
 	@if [ -z '${${*}}' ]; then echo 'ERROR: variable $* not set' && exit 1; fi
@@ -49,46 +59,39 @@ test-coverage: tests/test_project/files/migrations/0001_initial.py
 
 test-output-coverage: tests/test_project/files/migrations/0001_initial.py
 	poetry run pytest \
-		--junitxml=tests/test-results/junit.xml \
+		--junitxml=$(TEST_OUTPUT_DIR)/test-results/junit.xml \
 		--cov=django_backblaze_b2 \
-		--cov-report html:tests/htmlcov \
+		--cov-report html:$(TEST_OUTPUT_DIR)/htmlcov \
 		tests
 
-deps_and_test = apt-get update && \
-				apt-get install -y build-essential && \
-					cd app && make install-reqs-and-test
 test-ci:
-	@echo "Running tests and lint on python $(firstword ${pyversions})"
-	docker run --rm -v `pwd`:/app \
-		python:$(firstword ${pyversions})-slim \
-		/bin/sh -c "${deps_and_test} && make lint"
-	@echo "Running tests on python $(wordlist 2,99,${pyversions})"
-	$(MAKE) -j --output-sync=target $(addprefix run-test-in-docker-python-,$(wordlist 2,99,${pyversions}))
+	$(MAKE) run-test-in-docker-python-$(firstword ${pyversions})-django-$(DJANGO_VER) CHECK_LINT=1
+	$(MAKE) -j2 --output-sync=target $(addprefix run-test-in-docker-python-,$(filter-out $(firstword ${pyversions})-django-$(DJANGO_VER),$(test-combinations)))
 
 define TEST_DOCKERFILE
 ARG PYTHON_VER
 FROM python:$${PYTHON_VER}
 COPY . /app
-RUN apt-get update && apt-get install -y build-essential
-CMD cd /app && make install-reqs-and-test
+WORKDIR /app
+RUN pip install -r requirements.txt && poetry config virtualenvs.create false && poetry install --no-root
+ARG DJANGO_VER
+RUN pip install "Django~=$${DJANGO_VER}.0"
+CMD python --version && python -m django --version && make test-output-coverage && if [ "$${CHECK_LINT}" = "1" ]; then make lint; fi
 endef
 export TEST_DOCKERFILE
 
 run-test-in-docker-python-%:
-	@echo "$$TEST_DOCKERFILE" | docker build -tdjango-backblaze-b2-tests:python-$* --build-arg PYTHON_VER=$* -f- . 
-	bash -c "trap 'docker image rm django-backblaze-b2-tests:python-$*' EXIT; docker run --rm django-backblaze-b2-tests:python-$*"
-
-unused:
-	docker run --rm \
-		-v `pwd`:/app \
-		python:$*-slim \
-		/bin/sh -c "${deps_and_test}"
+	$(eval TEST_PYTHON = $(word 1,$(subst -django-, ,$*)))
+	$(eval TEST_DJANGO = $(or $(word 2,$(subst -django-, ,$*)),$(DJANGO_VER)))
+	@echo "$$TEST_DOCKERFILE" | docker build -tdjango-backblaze-b2-tests:$* --build-arg PYTHON_VER=$(TEST_PYTHON) --build-arg DJANGO_VER=$(TEST_DJANGO) -f- .
+	bash -c "trap 'docker image rm django-backblaze-b2-tests:$*' EXIT; docker run --rm -e CHECK_LINT=$(CHECK_LINT) -e TEST_OUTPUT_DIR=/results -v `pwd`/tests/matrix/$*:/results django-backblaze-b2-tests:$*"
 
 install-reqs-and-test:
 	pip install -r requirements.txt
 	poetry config virtualenvs.create false
-	poetry install
-	make test-output-coverage
+	poetry install --no-root
+	pip install "Django~=$(DJANGO_VER).0"
+	$(MAKE) test-output-coverage
 
 clean-django-files:
 	@rm -rf \
@@ -109,18 +112,16 @@ cleanup-docker:
 	fi
 
 define DOCKERFILE
-ARG PYTHON_VER=3.12
+ARG PYTHON_VER=3.14
 FROM python:$${PYTHON_VER}
 COPY requirements.txt poetry.* pyproject.toml ./
 RUN pip install -r requirements.txt
 ARG PYTHON_VER
 ARG DJANGO_VER
 RUN poetry config virtualenvs.create false && poetry install --no-root
-RUN sed -i 's/python = "^3.9.16"/python = "^'"$$PYTHON_VER"'.0"/g' pyproject.toml && \
-	poetry add django@~$${DJANGO_VER}
-RUN cat pyproject.toml
+RUN pip install "Django~=$${DJANGO_VER}.0"
 COPY django_backblaze_b2 ./django_backblaze_b2
-COPY setup.* README.md ./
+COPY README.md ./
 RUN poetry build && \
 	mv dist/django_backblaze_b2*.tar.gz dist/django_backblaze_b2.tar.gz && \
 	pip install dist/django_backblaze_b2.tar.gz && \
@@ -136,14 +137,14 @@ export DOCKERFILE
 
 run-sample-proj-on-django-%:
 	@echo "Build dockerfile b2-django-sample:dev"
-	@echo "$$DOCKERFILE" | docker build -t b2-django-sample:dev --build-arg DJANGO_VER=$* -f- . 
+	@echo "$$DOCKERFILE" | docker build -t b2-django-sample:dev --build-arg DJANGO_VER=$* --build-arg PYTHON_VER=$(PYTHON_VER) -f- .
 	touch sample_app/sample_app/settings.env
 	docker run --rm -p 8000:8000 \
 		--env-file sample_app/sample_app/settings.env \
-		-it b2-django-sample:dev
+		$(DOCKER_RUN_FLAGS) b2-django-sample:dev
 
 run-sample-proj:
-	$(MAKE) run-sample-proj-on-django-5.1
+	$(MAKE) run-sample-proj-on-django-$(DJANGO_VER)
 
 release: setup publish-to-pypi
 	gh release create ${PROJ_VERSION} --notes '${VER_DESCRIPTION}'

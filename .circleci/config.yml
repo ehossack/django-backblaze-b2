@@ -27,19 +27,22 @@ jobs:
           command: make test-ci
           name: Run tests, lint
       - store_test_results:
-          path: tests/test-results
+          path: tests/matrix
       - store_artifacts:
-          path: tests/htmlcov
+          path: tests/matrix
       - early_return_for_forked_pull_requests
       - run:
           command: |
             echo "BACKBLAZE_BUCKET=${TEST_BUCKET}" >> sample_app/sample_app/settings.env
             echo "BACKBLAZE_APPLICATION_KEY_ID=${TEST_BACKBLAZE_APPLICATION_KEY_ID}" >> sample_app/sample_app/settings.env
             echo "BACKBLAZE_APPLICATION_KEY=${TEST_BACKBLAZE_APPLICATION_KEY}" >> sample_app/sample_app/settings.env
-            make run-sample-proj-on-django-5.1
-            make run-sample-proj-on-django-5.0
-            make run-sample-proj-on-django-4.2
-            make run-sample-proj-on-django-3.2
+            make DOCKER_RUN_FLAGS= run-sample-proj
+            make DOCKER_RUN_FLAGS= run-sample-proj-on-django-6.1
+            make DOCKER_RUN_FLAGS= run-sample-proj-on-django-6.0
+            make DOCKER_RUN_FLAGS= run-sample-proj-on-django-5.1 PYTHON_VER=3.13
+            make DOCKER_RUN_FLAGS= run-sample-proj-on-django-5.0 PYTHON_VER=3.12
+            make DOCKER_RUN_FLAGS= run-sample-proj-on-django-4.2 PYTHON_VER=3.12
+            make DOCKER_RUN_FLAGS= run-sample-proj-on-django-3.2 PYTHON_VER=3.10
           name: Sanity check with sample proj
 
 workflows:
