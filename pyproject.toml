@@ -1,6 +1,6 @@
 [project]
 name = "django-backblaze-b2"
-version = "8.0.0"
+version = "8.1.0"
 description = "A Django app to use backblaze b2 as storage."
 authors = [{name = "Etienne H", email = "django_backblaze_b2@internet-e-mail.com"}]
 maintainers = [{name = "Etienne H", email = "django_backblaze_b2@internet-e-mail.com"}]
