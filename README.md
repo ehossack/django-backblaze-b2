@@ -134,8 +134,7 @@ Contributions welcome!
 
 ### Requires
 
-* python
-* pyenv - align local version
+* [uv](https://docs.astral.sh/uv/getting-started/installation/) 0.9.10 or newer
 * GNU Make
 * (optional) docker - run sample app
 
@@ -162,6 +161,12 @@ See [Python support status](https://devguide.python.org/versions/) and
 
 1. `make setup`
 
+uv installs the selected Python version and creates `.venv` from `uv.lock`.
+Use `make setup PYTHON_VER=3.13` to select another supported Python version.
+Run `uv lock` after editing dependencies and commit the updated `uv.lock`.
+Run `make setup` after lockfile changes. Test commands use the prepared
+environment without syncing so the CI matrix keeps its selected Django version.
+
 * You can run django with `make run-django` to test django app.
 * You can run tests with `make test`
 * You can view test coverage with `make test-coverage`, then see in the terminal, 
@@ -170,7 +175,10 @@ or use `cov.xml` in your favourite IDE like VSCode
 
 ### Releasing
 
-1. `make release`
+1. `make release pypi_token=...`
+
+`make release` builds the wheel and source distribution with `uv build`, checks
+the upload with `uv publish --dry-run`, and publishes to PyPI with `uv publish`.
 
 ### Cleanup
 

@@ -4,6 +4,8 @@
 		cleanup-docker run-sample-proj \
 		publish-to-pypi release require-var-%
 
+UV ?= uv
+UV_RUN = $(UV) run --no-sync
 pyversions=$(shell cat .python-versions)
 PYTHON_VER ?= $(firstword ${pyversions})
 DJANGO_VER ?= 5.2
@@ -16,41 +18,34 @@ django-versions-3.14 = 5.2 6.0 6.1
 test-combinations = $(foreach python,$(pyversions),$(foreach django,$(django-versions-$(python)),$(python)-django-$(django)))
 TEST_OUTPUT_DIR ?= tests
 setup:
-	echo "$(firstword ${pyversions})" > .python-version
-	pyenv install -s $(firstword ${pyversions})
-	pip install -r requirements.txt
-	poetry sync --no-root
+	$(UV) python pin $(PYTHON_VER)
+	$(UV) sync --locked --python $(PYTHON_VER)
 
 require-var-%:
 	@if [ -z '${${*}}' ]; then echo 'ERROR: variable $* not set' && exit 1; fi
 
 cleanup: clean-django-files cleanup-docker
-	- poetry env remove python
 	rm -rf .venv tests/htmlcov tests/cov.xml .coverage tests/test-results sample_app/sample_app/settings.env
-	@echo "django-backblaze-b2: still installed by us (`which python`):"
-	@cat requirements.txt
-	@echo ""
-	@echo "You may uninstall these requirements should you desire"
 
 lint: clean-django-files
 	@rm -rf .mypy_cache
 	for module in django_backblaze_b2 tests sample_app; do \
-		poetry run mypy -p $$module --warn-unused-ignores --enable-error-code ignore-without-code || exit 1; \
+		$(UV_RUN) mypy -p $$module --warn-unused-ignores --enable-error-code ignore-without-code || exit 1; \
 	done
-	poetry run ruff check .
-	poetry run ruff format --check .
+	$(UV_RUN) ruff check .
+	$(UV_RUN) ruff format --check .
 
 format:
-	poetry run ruff format .
+	$(UV_RUN) ruff format .
 
 test: tests/test_project/files/migrations/0001_initial.py
-	poetry run pytest tests --maxfail=2
+	$(UV_RUN) pytest tests --maxfail=2
 
 test-verbose: tests/test_project/files/migrations/0001_initial.py
 	PYTEST_ADDOPTS="-vv" make test
 
 test-coverage: tests/test_project/files/migrations/0001_initial.py
-	poetry run pytest \
+	$(UV_RUN) pytest \
 		--cov=django_backblaze_b2 \
 		--cov-report term:skip-covered \
 		--cov-report html:tests/htmlcov \
@@ -58,7 +53,7 @@ test-coverage: tests/test_project/files/migrations/0001_initial.py
 		tests
 
 test-output-coverage: tests/test_project/files/migrations/0001_initial.py
-	poetry run pytest \
+	$(UV_RUN) pytest \
 		--junitxml=$(TEST_OUTPUT_DIR)/test-results/junit.xml \
 		--cov=django_backblaze_b2 \
 		--cov-report html:$(TEST_OUTPUT_DIR)/htmlcov \
@@ -73,9 +68,12 @@ ARG PYTHON_VER
 FROM python:$${PYTHON_VER}
 COPY . /app
 WORKDIR /app
-RUN pip install -r requirements.txt && poetry config virtualenvs.create false && poetry install --no-root
+ENV UV_PYTHON_DOWNLOADS=never
+ENV UV_PYTHON=/usr/local/bin/python
+ENV PATH="/app/.venv/bin:$${PATH}"
+RUN pip install -r requirements.txt && uv sync --locked --no-install-project --python /usr/local/bin/python
 ARG DJANGO_VER
-RUN pip install "Django~=$${DJANGO_VER}.0"
+RUN uv pip install --python .venv/bin/python "Django~=$${DJANGO_VER}.0"
 CMD python --version && python -m django --version && make test-output-coverage && if [ "$${CHECK_LINT}" = "1" ]; then make lint; fi
 endef
 export TEST_DOCKERFILE
@@ -88,10 +86,9 @@ run-test-in-docker-python-%:
 
 install-reqs-and-test:
 	pip install -r requirements.txt
-	poetry config virtualenvs.create false
-	poetry install --no-root
-	pip install "Django~=$(DJANGO_VER).0"
-	$(MAKE) test-output-coverage
+	$(UV) sync --locked --no-install-project --python $(PYTHON_VER)
+	$(UV) pip install --python .venv/bin/python "Django~=$(DJANGO_VER).0"
+	UV_PYTHON=$(PYTHON_VER) $(MAKE) test-output-coverage
 
 clean-django-files:
 	@rm -rf \
@@ -99,11 +96,11 @@ clean-django-files:
 		tests/test_project/files/migrations/0001_initial.py
 
 tests/test_project/files/migrations/0001_initial.py:
-	poetry run python tests/test_project/manage.py makemigrations files
-	poetry run python tests/test_project/manage.py migrate
+	$(UV_RUN) python tests/test_project/manage.py makemigrations files
+	$(UV_RUN) python tests/test_project/manage.py migrate
 
 run-test-proj: clean-django-files tests/test_project/files/migrations/0001_initial.py
-	poetry run python tests/test_project/manage.py runserver
+	$(UV_RUN) python tests/test_project/manage.py runserver
 
 cleanup-docker:
 	@if docker info >/dev/null 2>&1; then \
@@ -114,17 +111,21 @@ cleanup-docker:
 define DOCKERFILE
 ARG PYTHON_VER=3.14
 FROM python:$${PYTHON_VER}
-COPY requirements.txt poetry.* pyproject.toml ./
+WORKDIR /app
+ENV UV_PYTHON_DOWNLOADS=never
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV PATH="/opt/venv/bin:$${PATH}"
+COPY requirements.txt uv.lock pyproject.toml ./
 RUN pip install -r requirements.txt
 ARG PYTHON_VER
 ARG DJANGO_VER
-RUN poetry config virtualenvs.create false && poetry install --no-root
-RUN pip install "Django~=$${DJANGO_VER}.0"
+RUN uv sync --locked --no-dev --no-install-project --python /usr/local/bin/python
+RUN uv pip install --python /opt/venv/bin/python "Django~=$${DJANGO_VER}.0"
 COPY django_backblaze_b2 ./django_backblaze_b2
-COPY README.md ./
-RUN poetry build && \
+COPY README.md LICENSE ./
+RUN uv build --no-sources && \
 	mv dist/django_backblaze_b2*.tar.gz dist/django_backblaze_b2.tar.gz && \
-	pip install dist/django_backblaze_b2.tar.gz && \
+	uv pip install --python /opt/venv/bin/python --no-deps dist/django_backblaze_b2.tar.gz && \
 	rm -rf django_backblaze_b2
 COPY sample_app ./sample_app
 EXPOSE 8000
@@ -151,8 +152,10 @@ release: setup publish-to-pypi
 
 publish-to-pypi: require-var-pypi_token
 	$(eval VER_DESCRIPTION = $(shell bash -c 'read -p "Release Description: " desc; echo $$desc'))
-	$(eval PROJ_VERSION = $(shell poetry run python -c "import toml; print(toml.load('pyproject.toml')['tool']['poetry']['version'])"))
-	poetry publish --build --dry-run --username __token__ --password ${pypi_token}
+	$(eval PROJ_VERSION = $(shell $(UV) version --short))
+	rm -rf dist
+	$(UV) build --no-sources
+	@UV_PUBLISH_TOKEN='${pypi_token}' $(UV) publish --dry-run
 	@if git show-ref --tags ${PROJ_VERSION} --quiet; then \
 		echo "tag for ${PROJ_VERSION} exists, delete it? [y/N] " && \
 		read ans && ([ $${ans:-N} = y ] && \
@@ -162,5 +165,4 @@ publish-to-pypi: require-var-pypi_token
 		git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}'; \
 	fi
 	git push -f origin refs/tags/${PROJ_VERSION}
-	rm -rf dist
-	poetry publish --build --username __token__ --password ${pypi_token}
+	@UV_PUBLISH_TOKEN='${pypi_token}' $(UV) publish
