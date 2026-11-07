@@ -25,9 +25,10 @@ download_version_factory = DownloadVersionFactory(mock.create_autospec(spec=B2Ap
 sdk_public_bucket_dict: _SdkBucketDict = {"bucketType": "allPublic"}
 
 
-def test_version():
+def test_version() -> None:
     pyproject_contents = toml.load("pyproject.toml")
-    pyproject_version = pyproject_contents.get("tool", {}).get("poetry", {}).get("version", None)
+    pyproject_version = pyproject_contents["project"]["version"]
+
     assert __version__ == pyproject_version
 
 

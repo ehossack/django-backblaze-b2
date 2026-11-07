@@ -1,13 +1,13 @@
-[tool.poetry]
+[project]
 name = "django-backblaze-b2"
-version = "7.0.1"
+version = "8.0.0"
 description = "A Django app to use backblaze b2 as storage."
-authors = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
-maintainers = ["Etienne H <django_backblaze_b2@internet-e-mail.com>"]
+authors = [{name = "Etienne H", email = "django_backblaze_b2@internet-e-mail.com"}]
+maintainers = [{name = "Etienne H", email = "django_backblaze_b2@internet-e-mail.com"}]
 license = "BSD-2-Clause"
+license-files = ["LICENSE"]
 readme = "README.md"
-homepage = "https://github.com/ehossack/django-backblaze-b2/"
-repository = "https://github.com/ehossack/django-backblaze-b2/"
+requires-python = ">=3.10,<4.0"
 keywords = ["django", "storage", "backblaze", "b2", "cloud"]
 classifiers = [
     "Environment :: Web Environment",
@@ -20,7 +20,6 @@ classifiers = [
     "Framework :: Django :: 6.0",
     "Framework :: Django :: 6.1",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
@@ -35,32 +34,39 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-include = ["py.typed"]
+dependencies = [
+    "b2sdk>=2.0.0,<3.0.0",
+    "django>=3.2",
+    "typing-extensions>=4.0.1,<5.0.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4.0"
-b2sdk = ">=2.0.0,<3.0.0"
-django = ">=3.2"
-typing-extensions = "^4.0.1"
+[project.urls]
+Homepage = "https://github.com/ehossack/django-backblaze-b2/"
+Repository = "https://github.com/ehossack/django-backblaze-b2/"
 
-[tool.poetry.group.dev.dependencies]
-django = ">=5.2.8,<5.3"
-django-stubs = ">=5.2,<6.0"
-pytest = ">=8.4,<9.0"
-mypy = ">=1.18,<2"
-pytest-cov = ">=4.1,<7.0"
-pytest-django = "^4.11"
-docutils = ">=0.20,<0.22"
-toml = "^0.10.2"
-ruff = ">=0.5.0,<1.0.0"
-types-toml = "^0.10.8.20240310"
+[dependency-groups]
+dev = [
+    "django>=5.2.8,<5.3",
+    "django-stubs>=5.2,<6.0",
+    "pytest>=8.4,<9.0",
+    "mypy>=1.18,<2",
+    "pytest-cov>=4.1,<7.0",
+    "pytest-django>=4.11,<5.0",
+    "docutils>=0.20,<0.22",
+    "toml>=0.10.2,<0.11.0",
+    "ruff>=0.5.0,<1.0.0",
+    "types-toml>=0.10.8.20240310,<0.11.0",
+]
 
 [build-system]
-requires = ["poetry-core>=2.2,<3"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.9.10,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
 
 [tool.ruff]
-exclude = [".git", "__pycache__", ".mypy_stubs"]
+exclude = [".git", ".venv", "__pycache__", ".mypy_stubs"]
 line-length = 120
 
 [tool.ruff.lint]
