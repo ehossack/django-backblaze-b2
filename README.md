@@ -39,11 +39,9 @@ e.g.
 ```python
 from django_backblaze_b2 import BackblazeB2Storage
 
+
 class MyModel(models.Model):
-    file_field = models.FileField(
-        upload_to="uploads",
-        storage=BackblazeB2Storage
-    )
+    file_field = models.FileField(upload_to="uploads", storage=BackblazeB2Storage)
 ```
 
 ### Public/Logged-In/Private storage
