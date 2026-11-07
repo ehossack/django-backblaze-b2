@@ -73,37 +73,30 @@ You can modify the settings dict, but additionally override any setting with the
 
 To specify different buckets to use for your public, logged-in, staff storage, you can set the 
 `specificBucketNames` attribute of the settings dict.
-## Why
+## Choosing a B2 storage backend
 
-There are several Django storage packages out there already which support B2, but none met my needs. These are:
+Comparison reviewed November 7, 2026.
 
-* [django-storages](https://github.com/jschneier/django-storages)
-    * Large community engagement ✅
-    * Well-tested ✅
-    * [Second-class support](https://github.com/jschneier/django-storages/issues/765) via [Apache Libcloud](https://github.com/apache/libcloud) ❌
-    * Disconnect in configuration and actual use ❌
-    * PR list with low turnaround ❌
-* [django-b2](https://github.com/pyutil/django-b2)
-    * Similar aim to this project, around official backblaze SDK ✅
-    * Mixed goals (storage, scripts) ❌
-    * Tests?? ❌
-* [django-backblazeb2-storage](https://github.com/royendgel/django-backblazeb2-storage)
-    * Simple configuration ✅
-    * Not based around python SDK (potentially harder to keep up with version changes) ❌
-    * Tests?? ❌
+| Package | When to use it | Tradeoff |
+| ------- | -------------- | -------- |
+| [django-storages](https://django-storages.readthedocs.io/en/latest/backends/s3_compatible/backblaze-B2.html) | Start here for standard media/static storage, public URLs or expiring private URLs. | Uses boto3 and B2's S3-compatible API; configure your B2 endpoint, region and credentials. |
+| django-backblaze-b2 (this package) | You want the native B2 SDK and included views that check Django login or staff status. | Downloads through those views pass through Django. The default setup requires a dedicated cache; per-file authorization is your responsibility. |
 
-### S3 Compatible API
+Older alternatives have no recent PyPI releases:
+[django-s3-storage](https://pypi.org/project/django-s3-storage/) (November 2023),
+[django-b2](https://pypi.org/project/django-b2/) (December 2020) and
+[django-backblazeb2-storage](https://pypi.org/project/django-backblazeb2-storage/) (May 2017).
 
-Backblazed can be used with an [S3-compatible API](https://www.backblaze.com/b2/docs/s3_compatible_api.html)
-This is great, but most packages use an older version of the S3 Api (v2). Backblaze uses v4.
+### S3 compatibility
 
-### What this package offers
+B2 requires Signature Version 4, which the
+[django-storages S3 backend](https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html)
+uses by default. S3 support does not require Libcloud. Presigned URLs allow direct
+B2 downloads after your application checks access.
 
-* Type Annotations
-* Tested
-* No hacks required to get up and running around API deficiencies (any hacks are not exposed in API)
-* Support for public/private files, restricted via Django user permissions
-* Support for CDN and cached url details
+Check [B2's compatibility notes](https://www.backblaze.com/docs/cloud-storage-s3-compatible-api):
+access is public/private per bucket, not per object, and presigned `POST` uploads are unsupported.
+Use private buckets for restricted files, including with this package's login/staff views.
 
 ## How it works
 
