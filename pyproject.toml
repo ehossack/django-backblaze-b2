@@ -47,7 +47,7 @@ Repository = "https://github.com/ehossack/django-backblaze-b2/"
 [dependency-groups]
 dev = [
     "django>=5.2.8,<5.3",
-    "django-stubs>=5.2,<6.0",
+    "django-stubs>=5.2,<7.0",
     "pytest>=8.4,<10.0",
     "mypy>=1.18,<3",
     "pytest-cov>=4.1,<8.0",
