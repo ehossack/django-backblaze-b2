@@ -54,6 +54,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         logger.debug(f"Initializing {self.__class__.__name__} with cache '{cache_name}'")
         self._cache_name = cache_name
         self._cache_lock = threading.Lock()
+        self._last_auth_data: Optional[dict] = None
         try:
             self.cache = caches[cache_name]
             self.cache.set("bucket_names", [])
@@ -81,6 +82,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         Remove all info about accounts and buckets.
         """
         logger.debug("Clearing cache info")
+        self._last_auth_data = None
         self.cache.clear()
         self.cache.set("bucket_names", [])
 
@@ -120,6 +122,7 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
                 "auth values updated: "
                 + ", ".join(dict([(k, v) for (k, v) in new_value.items() if old_value.get(k) != new_value[k]]).keys())
             )
+        self._last_auth_data = new_value
         self.cache.set(
             "cached_account_info",
             new_value,
@@ -127,7 +130,14 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         )
 
     def _cached_info(self):
-        return self.cache.get("cached_account_info", default={})
+        info = self.cache.get("cached_account_info")
+        if info is None and self._last_auth_data:
+            # The cache may evict the entry (e.g. memcached or redis LRU). Without the
+            # application key b2sdk cannot re-authorize, so put back what we last stored.
+            logger.debug("Auth data missing from cache, restoring it")
+            self.cache.set("cached_account_info", self._last_auth_data, timeout=None)
+            info = self._last_auth_data
+        return info or {}
 
     @_handle_result_is_none()
     def get_application_key(self):
