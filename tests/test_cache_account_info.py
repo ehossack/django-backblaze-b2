@@ -130,6 +130,28 @@ def test_can_store_and_retrieve_values(allowed: Dict, caplog):
     assert ("django-backblaze-b2", logging.DEBUG, "all auth values updated") == caplog.record_tuples[-1]
 
 
+def test_restores_auth_data_evicted_from_cache(allowed: Dict):
+    cache_account_info = DjangoCacheAccountInfo("test-cache")
+    cache_account_info.set_auth_data(
+        "account-id",
+        "auth-token",
+        "api-url",
+        "download-url",
+        "recommended-part-size",
+        "absolute-minimum-part-size",
+        "application-key",
+        "realm",
+        "http://s3-api-url/",
+        allowed,
+        "application-key-id",
+    )
+    cache_account_info.cache.delete("cached_account_info")
+
+    assert cache_account_info.get_api_url() == "api-url"
+    assert cache_account_info.get_application_key() == "application-key"
+    assert cache_account_info.cache.get("cached_account_info")["auth_token"] == "auth-token"
+
+
 def test_logs_auth_data_diff(allowed: Dict, caplog):
     caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
     cache_account_info = DjangoCacheAccountInfo("test-cache")
