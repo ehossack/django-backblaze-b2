@@ -1,8 +1,11 @@
 import logging
 import mimetypes
-from typing import Union
+from functools import cache
+from typing import Type, Union
 
 from b2sdk.v1.exception import FileNotPresent
+from django.core.signals import setting_changed
+from django.dispatch import receiver
 from django.http import FileResponse, HttpRequest, HttpResponse, HttpResponseNotFound
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.clickjacking import xframe_options_sameorigin
@@ -14,24 +17,36 @@ from ._decorators import _requires_login
 logger = logging.getLogger("django-backblaze-b2")
 
 
+@cache
+def _get_storage(storage_class: Type[storage.BackblazeB2Storage]) -> storage.BackblazeB2Storage:
+    # A new storage per request means a new b2 authorization per request
+    return storage_class()
+
+
+@receiver(setting_changed)
+def _reset_storages(setting: str, **kwargs) -> None:
+    if setting == "BACKBLAZE_CONFIG":
+        _get_storage.cache_clear()
+
+
 @xframe_options_sameorigin
 def download_public_file(request: HttpRequest, filename: str) -> Union[HttpResponse, FileResponse]:
     """Serves the specified 'filename' without validating any authentication"""
-    return _download_file_from_storage(storages.PublicStorage(), filename)
+    return _download_file_from_storage(_get_storage(storages.PublicStorage), filename)
 
 
 @_requires_login()
 @xframe_options_sameorigin
 def download_logged_in_file(request: HttpRequest, filename: str) -> Union[HttpResponse, FileResponse]:
     """Serves the specified 'filename' validating the user is logged in"""
-    return _download_file_from_storage(storages.LoggedInStorage(), filename)
+    return _download_file_from_storage(_get_storage(storages.LoggedInStorage), filename)
 
 
 @_requires_login(requires_staff=True)
 @xframe_options_sameorigin
 def download_staff_file(request: HttpRequest, filename: str) -> Union[HttpResponse, FileResponse]:
     """Serves the specified 'filename' validating the user is logged in and a staff user"""
-    return _download_file_from_storage(storages.StaffStorage(), filename)
+    return _download_file_from_storage(_get_storage(storages.StaffStorage), filename)
 
 
 def _download_file_from_storage(

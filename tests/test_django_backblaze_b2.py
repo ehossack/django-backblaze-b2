@@ -314,6 +314,17 @@ def test_can_download_using_public_storage(tempfile, client: Client):
 
 
 @pytest.mark.django_db
+def test_download_view_authorizes_once(tempfile, client: Client):
+    _mock_file_download(tempfile)
+    _mock_fileexists(tempfile)
+    with _mocked_bucket():
+        for _ in range(3):
+            assert client.get(f"/b2/{tempfile.name}").status_code == 200
+
+        B2Api.authorize_account.assert_called_once()
+
+
+@pytest.mark.django_db
 def test_requires_auth_for_logged_in_storage(tempfile, client: Client):
     _mock_file_download(tempfile)
     _mock_filedoesnotexist(tempfile)

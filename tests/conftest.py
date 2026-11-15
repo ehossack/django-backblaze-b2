@@ -21,3 +21,10 @@ def tempfile() -> File:
 @pytest.fixture(autouse=True)
 def debug_logging() -> None:
     logging.getLogger("django-backblaze-b2").setLevel(logging.DEBUG)
+
+
+@pytest.fixture(autouse=True)
+def fresh_view_storages() -> None:
+    from django_backblaze_b2.views import _get_storage
+
+    _get_storage.cache_clear()
