@@ -168,9 +168,9 @@ class BackblazeB2Storage(Storage):
         logger.debug(f"Connected to bucket {self._bucket.as_dict()}")
 
     def _refresh_bucket(self) -> Bucket:
-        if self._bucket:
-            return self._bucket.get_fresh_state()
-        return self.bucket
+        # get_fresh_state() returns a new Bucket and leaves the old one as it was
+        self._bucket = self.bucket.get_fresh_state()
+        return self._bucket
 
     def _open(self, name: str, mode: str) -> File:
         return B2File(
