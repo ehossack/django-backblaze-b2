@@ -1,8 +1,10 @@
+import tempfile
 from io import BytesIO
 from logging import getLogger
 from typing import IO, Any, Callable, Dict, Optional, Union
 
 from b2sdk.v2 import Bucket
+from django.conf import settings
 from django.core.files.base import File
 
 logger = getLogger("django-backblaze-b2")
@@ -37,12 +39,15 @@ class B2File(File):
     def file(self, value: Optional[IO[Any]]) -> None:
         self._contents = value
 
-    def _read_file_contents(self) -> BytesIO:
+    def _read_file_contents(self) -> IO[bytes]:
         currently_downloading_file = self._bucket.download_file_by_name(file_name=self.name)
-        bytes_io = BytesIO()
-        currently_downloading_file.save(bytes_io)
-        contents = BytesIO(bytes_io.getvalue())
-        bytes_io.close()
+        # same threshold Django uses to keep uploads in memory or on disk
+        if currently_downloading_file.download_version.content_length > settings.FILE_UPLOAD_MAX_MEMORY_SIZE:
+            contents: IO[bytes] = tempfile.TemporaryFile()
+        else:
+            contents = BytesIO()
+        currently_downloading_file.save(contents)
+        contents.seek(0)
         return contents
 
     @property
