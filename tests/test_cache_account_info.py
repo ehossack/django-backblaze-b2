@@ -98,6 +98,16 @@ def test_raises_if_attributes_are_none():
     assert cache_account_info.get_s3_api_url() == ""
 
 
+def test_missing_account_data_preserves_unrelated_cache_entries() -> None:
+    cache_account_info = DjangoCacheAccountInfo("test-cache")
+    cache_account_info.cache.set("application-setting", "cached value")
+
+    with pytest.raises(MissingAccountData):
+        cache_account_info.get_account_id()
+
+    assert cache_account_info.cache.get("application-setting") == "cached value"
+
+
 def test_can_store_and_retrieve_values(allowed: Dict, caplog):
     caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
     cache_account_info = DjangoCacheAccountInfo("test-cache")

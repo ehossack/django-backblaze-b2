@@ -31,7 +31,6 @@ def _handle_result_is_none(item_name=None):
             assert function.__name__.startswith("get_")
             result = function(self, *args, **kwargs)
             if result is None:
-                self._clear_cache()
                 raise MissingAccountData(
                     f"Token refresh required to determine value of '{item_name or function.__name__[len('get_') :]}'",
                 )
