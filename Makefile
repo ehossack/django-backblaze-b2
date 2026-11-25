@@ -150,22 +150,10 @@ run-sample-proj-on-django-%:
 run-sample-proj:
 	$(MAKE) run-sample-proj-on-django-$(DJANGO_VER)
 
-release: setup publish-to-pypi
-	gh release create ${PROJ_VERSION} --notes '${VER_DESCRIPTION}'
+release publish-to-pypi: export UV_PUBLISH_TOKEN = $(pypi_token)
+
+release: require-var-pypi_token
+	@$(UV_RUN) python scripts/release.py --uv "$(UV)"
 
 publish-to-pypi: require-var-pypi_token
-	$(eval VER_DESCRIPTION = $(shell bash -c 'read -p "Release Description: " desc; echo $$desc'))
-	$(eval PROJ_VERSION = $(shell $(UV) version --short))
-	rm -rf dist
-	$(UV) build --no-sources
-	@UV_PUBLISH_TOKEN='${pypi_token}' $(UV) publish --dry-run
-	@if git show-ref --tags ${PROJ_VERSION} --quiet; then \
-		echo "tag for ${PROJ_VERSION} exists, delete it? [y/N] " && \
-		read ans && ([ $${ans:-N} = y ] && \
-		git tag -d ${PROJ_VERSION} && \
-		git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}') || true; \
-	else \
-		git tag -a ${PROJ_VERSION} -m '${VER_DESCRIPTION}'; \
-	fi
-	git push -f origin refs/tags/${PROJ_VERSION}
-	@UV_PUBLISH_TOKEN='${pypi_token}' $(UV) publish
+	@$(UV_RUN) python scripts/release.py --uv "$(UV)" --pypi-only
