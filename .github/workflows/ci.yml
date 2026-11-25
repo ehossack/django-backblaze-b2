@@ -113,3 +113,30 @@ jobs:
             -e PYTHONPATH=/app/sample_app \
             -e DJANGO_SETTINGS_MODULE=sample_app.settings \
             b2-django-sample:dev - < sample_app/check.py
+
+  live-bucket:
+    name: Check sample app against Backblaze
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.9.10"
+          python-version: "3.14"
+          enable-cache: true
+      - run: make setup
+      - name: Authenticate and open the test bucket
+        env:
+          BACKBLAZE_BUCKET: ${{ secrets.TEST_BUCKET || vars.TEST_BUCKET }}
+          BACKBLAZE_APPLICATION_KEY_ID: ${{ secrets.TEST_BACKBLAZE_APPLICATION_KEY_ID }}
+          BACKBLAZE_APPLICATION_KEY: ${{ secrets.TEST_BACKBLAZE_APPLICATION_KEY }}
+          DJANGO_SETTINGS_MODULE: sample_app.settings
+          PYTHONPATH: sample_app
+        run: |
+          : "${BACKBLAZE_BUCKET:?Missing TEST_BUCKET}"
+          : "${BACKBLAZE_APPLICATION_KEY_ID:?Missing TEST_BACKBLAZE_APPLICATION_KEY_ID}"
+          : "${BACKBLAZE_APPLICATION_KEY:?Missing TEST_BACKBLAZE_APPLICATION_KEY}"
+          uv run --no-sync python -c 'from django_backblaze_b2 import BackblazeB2Storage; BackblazeB2Storage()'
