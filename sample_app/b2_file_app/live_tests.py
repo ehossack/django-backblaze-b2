@@ -1,3 +1,4 @@
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import requests
@@ -48,7 +49,9 @@ class SampleAppDownloads(LiveServerTestCase):
             authenticated = browser.get(url, allow_redirects=False, timeout=30)
 
             self.assertEqual(anonymous.status_code, 302)
-            self.assertTrue(anonymous.headers["Location"].startswith("/admin/login/?next="))
+            login_redirect = urlsplit(anonymous.headers["Location"])
+            self.assertEqual(login_redirect.path.rstrip("/"), "/admin/login")
+            self.assertEqual(parse_qs(login_redirect.query), {"next": [urlsplit(url).path]})
             self.assertEqual(authenticated.status_code, 200)
             self.assertEqual(authenticated.content, b"staff sample")
 
