@@ -171,6 +171,7 @@ def test_logs_auth_data_diff(allowed: Dict, caplog):
             "absolute_minimum_part_size, application_key, realm, s3_api_url, application_key_id"
         ),
     ) == caplog.record_tuples[-1]
+    assert cache_account_info.get_account_auth_token() == "auth-token2"
 
 
 def test_get_bucket_id_when_bucket_name_set():
@@ -275,6 +276,7 @@ def test_can_clear_cache(allowed: Dict, caplog):
     bucket.id_ = "some-id"
     bucket.name = "some-name"
     cache_account_info.save_bucket(bucket)
+    cache_account_info.get_allowed()
 
     cache_account_info.clear()
 
