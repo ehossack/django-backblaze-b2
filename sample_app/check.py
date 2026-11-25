@@ -1,21 +1,37 @@
+import sys
+from contextlib import contextmanager, nullcontext
 from importlib import import_module
 from importlib.metadata import distribution
 from pathlib import Path
+from typing import Iterator
+from unittest.mock import patch
 
 import django
+from b2sdk.v2 import B2Api, B2HttpApiConfig, InMemoryAccountInfo, RawSimulator
 from django.conf import settings
 from django.core.management import call_command
 
 
 def main() -> None:
-    settings.BACKBLAZE_CONFIG.update(validate_on_init=False, authorize_on_init=False)
-    django.setup()
+    with nullcontext() if "--live" in sys.argv else _simulated_bucket():
+        django.setup()
+        _verify_installed_package()
+        call_command("check")
+        call_command("makemigrations", "b2_file_app")
+        call_command("migrate")
+        call_command("createuser")
+        call_command("test", "b2_file_app.live_tests", interactive=False)
 
-    _verify_installed_package()
-    call_command("check")
-    call_command("makemigrations", "b2_file_app")
-    call_command("migrate")
-    call_command("createuser")
+
+@contextmanager
+def _simulated_bucket() -> Iterator[None]:
+    api = B2Api(InMemoryAccountInfo(), api_config=B2HttpApiConfig(_raw_api_class=RawSimulator))
+    key_id, key = api.session.raw_api.create_account()
+    api.authorize_account("production", key_id, key)
+    api.create_bucket(settings.BACKBLAZE_CONFIG["bucket"], "allPrivate")
+    settings.BACKBLAZE_CONFIG.update(application_key_id=key_id, application_key=key)
+    with patch("django_backblaze_b2.storage.B2Api", return_value=api):
+        yield
 
 
 def _verify_installed_package() -> None:
