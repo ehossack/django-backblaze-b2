@@ -80,12 +80,13 @@ jobs:
           retention-days: 7
 
   sample-app:
+    if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'
     name: Sample / Python ${{ matrix.python }} / Django ${{ matrix.django }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
-      matrix:
+      matrix: &sample-matrix
         include:
           - {python: "3.14", django: "5.2"}
           - {python: "3.14", django: "6.1"}
@@ -113,3 +114,32 @@ jobs:
             -e PYTHONPATH=/app/sample_app \
             -e DJANGO_SETTINGS_MODULE=sample_app.settings \
             b2-django-sample:dev - < sample_app/check.py
+
+  live-sample-app:
+    name: Live sample / Python ${{ matrix.python }} / Django ${{ matrix.django }}
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix: *sample-matrix
+    env:
+      PYTHON_VER: ${{ matrix.python }}
+      DJANGO_VER: ${{ matrix.django }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Build sample image
+        run: make run-sample-proj DOCKER_RUN_FLAGS=--entrypoint=/bin/true
+      - name: Test public and staff downloads
+        env:
+          BACKBLAZE_BUCKET: ${{ secrets.TEST_BUCKET || vars.TEST_BUCKET }}
+          BACKBLAZE_APPLICATION_KEY_ID: ${{ secrets.TEST_BACKBLAZE_APPLICATION_KEY_ID }}
+          BACKBLAZE_APPLICATION_KEY: ${{ secrets.TEST_BACKBLAZE_APPLICATION_KEY }}
+        run: |
+          docker run --rm --entrypoint python \
+            -e BACKBLAZE_APPLICATION_KEY_ID \
+            -e BACKBLAZE_APPLICATION_KEY \
+            -e BACKBLAZE_BUCKET \
+            -e DJANGO_SETTINGS_MODULE=sample_app.settings \
+            b2-django-sample:dev sample_app/check.py --live
