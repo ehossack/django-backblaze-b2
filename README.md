@@ -177,7 +177,10 @@ These checks do not authorize with Backblaze or require repository secrets.
 
 ### Releasing
 
-1. `make release pypi_token=...`
+1. `pypi_token=<value> make release`
+
+Run from a clean `main` matching `origin/main`. The command prompts to release or
+bump the version, then publishes to PyPI and creates a GitHub release.
 
 `make release` builds the wheel and source distribution with `uv build`, checks
 the upload with `uv publish --dry-run`, and publishes to PyPI with `uv publish`.
