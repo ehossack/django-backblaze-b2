@@ -94,7 +94,7 @@ wheels = [
 
 [[package]]
 name = "b2sdk"
-version = "2.13.3"
+version = "2.13.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-types" },
@@ -103,9 +103,9 @@ dependencies = [
     { name = "requests" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/56/4c/ac383cdb2709b77c57da3f9383eb25354b857fa376636d8bcad21562c666/b2sdk-2.13.3.tar.gz", hash = "sha256:e7803a67713a6f846738d7c5fda1ae0032c9b093b59df8b0fb7e6c11801bdaf3", size = 210968, upload-time = "2026-11-06T19:36:35.762Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d4/fc/2a7b07726d88b488e41de6b8a7b983976aeb78d8913a018a2c6928b92082/b2sdk-2.13.5.tar.gz", hash = "sha256:584a5746be087476fd6106cc7635c2da032d484b73634f7e6afc5758f25c2b5b", size = 210994, upload-time = "2026-11-17T21:51:03.46Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/e8/01cc5f4e0e20a95fa9738b7bb37cfa4ed22b00cec6dc707287c9a5908b61/b2sdk-2.13.3-py3-none-any.whl", hash = "sha256:25abceee5a640d811eb04f433815dc4677d6d77a5cd6d2dd09f0ab4fcba857dd", size = 302036, upload-time = "2026-11-06T19:36:34.47Z" },
+    { url = "https://files.pythonhosted.org/packages/9c/00/8f825646f6866dd7f7777f7241c753dbabfea767655ca3a11bdad370991c/b2sdk-2.13.5-py3-none-any.whl", hash = "sha256:589124c52eea92ff69930d1539d5a2fe041c62a1146cf0dd7a1d1d8cb0d70868", size = 302048, upload-time = "2026-11-17T21:51:02.238Z" },
 ]
 
 [[package]]
