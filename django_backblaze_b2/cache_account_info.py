@@ -1,8 +1,10 @@
 import logging
 import threading
+from copy import deepcopy
 from functools import wraps
 from hashlib import sha3_224 as hash
-from typing import Iterable, List, Optional, Tuple
+from time import monotonic
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from b2sdk.v2 import UrlPoolAccountInfo
 from b2sdk.v2.exception import MissingAccountData
@@ -29,7 +31,7 @@ def _handle_result_is_none(item_name=None):
             assert function.__name__.startswith("get_")
             result = function(self, *args, **kwargs)
             if result is None:
-                self.cache.clear()
+                self._clear_cache()
                 raise MissingAccountData(
                     f"Token refresh required to determine value of '{item_name or function.__name__[len('get_') :]}'",
                 )
@@ -50,10 +52,12 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
     and within the 'locked' blocks, mutation of values between cache accesses
     """
 
-    def __init__(self, cache_name: str):
+    def __init__(self, cache_name: str) -> None:
         logger.debug(f"Initializing {self.__class__.__name__} with cache '{cache_name}'")
         self._cache_name = cache_name
         self._cache_lock = threading.Lock()
+        self._recent_auth_data: Dict[str, Any] = {}
+        self._auth_data_expires_at = 0.0
         try:
             self.cache = caches[cache_name]
             self.cache.set("bucket_names", [])
@@ -76,28 +80,33 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
             )
         super(DjangoCacheAccountInfo, self).__init__()
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Remove all info about accounts and buckets.
         """
         logger.debug("Clearing cache info")
-        self.cache.clear()
+        self._clear_cache()
         self.cache.set("bucket_names", [])
+
+    def _clear_cache(self) -> None:
+        with self._cache_lock:
+            self._recent_auth_data = {}
+            self.cache.clear()
 
     def _set_auth_data(
         self,
-        account_id,
-        auth_token,
-        api_url,
-        download_url,
-        recommended_part_size,
-        absolute_minimum_part_size,
-        application_key,
-        realm,
-        s3_api_url,
-        allowed,
-        application_key_id,
-    ):
+        account_id: str,
+        auth_token: str,
+        api_url: str,
+        download_url: str,
+        recommended_part_size: int,
+        absolute_minimum_part_size: int,
+        application_key: str,
+        realm: str,
+        s3_api_url: str,
+        allowed: Dict[str, Any],
+        application_key_id: str,
+    ) -> None:
         logger.debug("New auth data set")
         old_value = self._cached_info()
         new_value = {
@@ -120,14 +129,22 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
                 "auth values updated: "
                 + ", ".join(dict([(k, v) for (k, v) in new_value.items() if old_value.get(k) != new_value[k]]).keys())
             )
-        self.cache.set(
-            "cached_account_info",
-            new_value,
-            timeout=None,
-        )
+        with self._cache_lock:
+            self._recent_auth_data = {}
+            self.cache.set("cached_account_info", new_value, timeout=None)
 
-    def _cached_info(self):
-        return self.cache.get("cached_account_info", default={})
+    def _cached_info(self) -> Dict[str, Any]:
+        """Reuse one cache read across the SDK's account getters.
+
+        Building a download URL reads both bucket permissions and the download
+        host from the same record. Keep it in memory for five seconds so those
+        getters can share a read and workers still pick up each other's updates.
+        """
+        with self._cache_lock:
+            if not self._recent_auth_data or monotonic() >= self._auth_data_expires_at:
+                self._recent_auth_data = self.cache.get("cached_account_info", default={})
+                self._auth_data_expires_at = monotonic() + 5
+            return self._recent_auth_data
 
     @_handle_result_is_none()
     def get_application_key(self):
@@ -167,8 +184,8 @@ class DjangoCacheAccountInfo(UrlPoolAccountInfo):
         return self._cached_info().get("recommended_part_size")
 
     @_handle_result_is_none()
-    def get_allowed(self):
-        return self._cached_info().get("allowed")
+    def get_allowed(self) -> Optional[Dict[str, Any]]:
+        return deepcopy(self._cached_info().get("allowed"))
 
     def get_s3_api_url(self):
         return self._cached_info().get("s3_api_url") or ""

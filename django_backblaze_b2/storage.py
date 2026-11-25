@@ -1,5 +1,4 @@
 from datetime import datetime
-from hashlib import sha3_224 as hash
 from logging import getLogger
 from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
 
@@ -10,8 +9,9 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
-from typing_extensions import NotRequired, TypedDict, TypeVar, Unpack
+from typing_extensions import NotRequired, TypeVar, Unpack
 
+from django_backblaze_b2._file_info_cache import FileInfoCache, _SdkFileInfoDict
 from django_backblaze_b2.b2_file import B2File
 from django_backblaze_b2.cache_account_info import DjangoCacheAccountInfo
 from django_backblaze_b2.options import (
@@ -24,22 +24,6 @@ from django_backblaze_b2.options import (
 )
 
 logger = getLogger("django-backblaze-b2")
-
-
-class _SdkBaseFileInfoDict(TypedDict):
-    """See https://github.com/Backblaze/b2-sdk-python/blob/2c85182c82ee09b7db7216d70567aafb87f31536/b2sdk/file_version.py"""  # noqa: E501
-
-    fileId: str  # noqa: N815
-    fileName: str  # noqa: N815
-    fileInfo: dict  # noqa: N815
-
-
-class _SdkFileInfoDict(_SdkBaseFileInfoDict, total=False):
-    """See https://github.com/Backblaze/b2-sdk-python/blob/2c85182c82ee09b7db7216d70567aafb87f31536/b2sdk/file_version.py#L143"""  # noqa: E501
-
-    size: int
-    uploadTimestamp: int  # noqa: N815
-    contentType: str  # noqa: N815
 
 
 class B2FileInformationNotAvailableException(Exception):  # noqa: N818
@@ -73,6 +57,7 @@ class BackblazeB2Storage(Storage):
         )
         self._allow_file_overwrites = opts["allow_file_overwrites"]
         self._cdn_config: Optional[CDNConfig] = opts.get("cdn_config")
+        self._file_info_cache = FileInfoCache()
 
         self._get_account_info = self._create_account_info_callable(opts)
 
@@ -186,13 +171,15 @@ class BackblazeB2Storage(Storage):
         Save and retrieve the filename.
         If the file exists it will make another version of that file.
         """
-        return B2File(
+        saved_name = B2File(
             name=name,
             bucket=self.bucket,
             file_metadata=self._default_file_metadata,
             mode="w",
             size_provider=self.size,
         ).save_and_retrieve_file(content)
+        self._invalidate_file_info(saved_name)
+        return saved_name
 
     def path(self, name: str) -> str:
         return name
@@ -202,28 +189,26 @@ class BackblazeB2Storage(Storage):
         if file_info:
             logger.debug(f"Deleting file {name} id=({file_info['fileId']})")
             self.b2_api.delete_file_version(file_id=file_info["fileId"], file_name=name)
-            if self._cache:
-                self._cache.delete(self._file_cache_key(name))
+            self._invalidate_file_info(name)
         else:
             logger.debug("Not found")
 
+    def _invalidate_file_info(self, name: str) -> None:
+        cache = self._cache
+        if cache is not None:
+            self._file_info_cache.invalidate(cache, self.bucket.name, name)
+
+    def exists(self, name: str) -> bool:
+        return bool(self._file_info(name))
+
     def _file_info(self, name: str) -> Optional[_SdkFileInfoDict]:
         try:
-            if self._cache:
-                cache_key = self._file_cache_key(name)
-                timeout_in_seconds = 60
-
-                def load_info():
-                    logger.debug(f"file info cache miss for {name}")
-                    return self.bucket.get_file_info_by_name(name).as_dict()
-
-                return self._cache.get_or_set(key=cache_key, default=load_info, timeout=timeout_in_seconds)
-            return self.bucket.get_file_info_by_name(name).as_dict()
+            cache = self._cache
+            if cache is None:
+                return self.bucket.get_file_info_by_name(name).as_dict()
+            return self._file_info_cache.get(cache, self.bucket, name)
         except FileNotPresent:
             return None
-
-    def _file_cache_key(self, name: str) -> str:
-        return hash(f"{self.bucket.name}__{name}".encode()).hexdigest()
 
     @property
     def _cache(self) -> Optional[BaseCache]:
@@ -235,9 +220,6 @@ class BackblazeB2Storage(Storage):
         ):
             return self._account_info.cache
         return None
-
-    def exists(self, name: str) -> bool:
-        return bool(self._file_info(name))
 
     def size(self, name: str) -> int:
         file_info = self._file_info(name)
