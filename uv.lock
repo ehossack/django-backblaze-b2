@@ -469,7 +469,7 @@ wheels = [
 
 [[package]]
 name = "django-backblaze-b2"
-version = "8.1.1"
+version = "8.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "b2sdk" },
