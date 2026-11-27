@@ -53,22 +53,31 @@ class FileInfoCache:
         self._recent_file_info: Dict[str, _CachedFileInfo] = {}
 
     def get(self, cache: BaseCache, bucket: Bucket, name: str) -> Optional[_SdkFileInfoDict]:
-        def load_info() -> _SdkFileInfoDict:
-            logger.debug(f"file info cache miss for {name}")
-            return bucket.get_file_info_by_name(name).as_dict()
-
         with self._lock:
             cached = self._recent_file_info.get(name)
             if cached is not None and monotonic() < cached.expires_at:
                 return cached.file_info
 
-            file_info = cache.get_or_set(self._cache_key(bucket.name, name), load_info, timeout=60)
+            file_info = self._get_or_set_shared_file_info(cache, bucket, name)
             if file_info is not None:
                 max_cached_files = 256
                 if len(self._recent_file_info) >= max_cached_files:
                     self._recent_file_info.clear()
                 self._recent_file_info[name] = _CachedFileInfo(file_info=file_info, expires_at=monotonic() + 2)
             return file_info
+
+    def _get_or_set_shared_file_info(self, cache: BaseCache, bucket: Bucket, name: str) -> Optional[_SdkFileInfoDict]:
+        key = self._cache_key(bucket.name, name)
+        cache_miss = object()
+        cached_file_info = cache.get(key, cache_miss)
+        if cached_file_info is not cache_miss:
+            return cached_file_info
+
+        logger.debug(f"file info cache miss for {name}")
+        file_info: _SdkFileInfoDict = bucket.get_file_info_by_name(name).as_dict()
+        if cache.add(key, file_info, timeout=60):
+            return file_info
+        return cache.get(key, file_info)
 
     def invalidate(self, cache: BaseCache, bucket_name: str, name: str) -> None:
         with self._lock:
