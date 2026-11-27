@@ -3,7 +3,7 @@ import hashlib
 import logging
 from contextlib import contextmanager
 from io import IOBase
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Optional
 from unittest import mock
 
 import pytest
@@ -270,19 +270,14 @@ def test_generates_public_file_url_preferring_constructor_cdn_config_over_django
 @pytest.mark.django_db
 def test_generates_public_file_with_retry_if_bucket_type_missing(caplog):
     caplog.set_level(logging.DEBUG, logger="django-backblaze-b2")
-    counter = 0
-
-    def get_dict() -> Union[_SdkBucketDict, Dict[str, None]]:
-        nonlocal counter
-
-        counter += 1
-        if counter < 3:
-            return {}
-        return sdk_public_bucket_dict
+    # a bucket built from the cached name/id has no type, only the fresh state does
+    fresh_bucket = mock.create_autospec(spec=Bucket, name="Fresh bucket")
+    fresh_bucket.as_dict.return_value = sdk_public_bucket_dict
 
     with (
         _mocked_bucket(),
-        mock.patch.object(bucket, "as_dict", side_effect=get_dict),
+        mock.patch.object(bucket, "as_dict", return_value={}),
+        mock.patch.object(bucket, "get_fresh_state", return_value=fresh_bucket),
         mock.patch.object(
             B2Api,
             "get_download_url_for_file_name",
