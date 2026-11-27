@@ -2,7 +2,7 @@ import datetime
 import hashlib
 import logging
 from contextlib import contextmanager
-from io import IOBase
+from io import BytesIO, IOBase
 from typing import Callable, Dict, Optional, Union
 from unittest import mock
 
@@ -123,6 +123,22 @@ def test_can_read_file_contents(tempfile):
 
         assert file_contents is not None
         assert str(file_contents) != ""
+
+
+@pytest.mark.django_db
+def test_large_file_contents_are_not_held_in_memory(settings):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    settings.FILE_UPLOAD_MAX_MEMORY_SIZE = 10
+    large_file = SimpleUploadedFile("large-file.pdf", b"x" * 100)
+    _mock_file_download(large_file)
+    _mock_filedoesnotexist(large_file)
+
+    with _mocked_bucket(), _file_info(size=large_file.size):
+        field_file = _get_file_from_new_files_model_object(large_file)
+
+        assert not isinstance(field_file.file.file, BytesIO)
+        assert field_file.file.read() == b"x" * 100
 
 
 @pytest.mark.django_db
@@ -478,6 +494,7 @@ def _get_file_from_new_files_model_object(tempfile: File) -> File:
 def _mock_file_download(tempfile: File) -> None:
     def _download_file_factory(file_name):
         downloaded_file = mock.create_autospec(spec=DownloadedFile, name=f"Mock download for {__name__}")
+        downloaded_file.download_version = _get_file_info_by_name_response("someId", file_name, tempfile.size)
 
         def save_into_bytes(file: IOBase, allow_seeking: bool = True):
             tempfile.seek(0)
